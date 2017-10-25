@@ -14,31 +14,32 @@ LAST_CALLED = {}
 
 
 class BotSkeleton():
-    def __init__(self, bot_name="A bot"):
+    def __init__(self, secrets_dir=None, bot_name="A bot"):
         """Authenticate and get access to API."""
+        if secrets_dir is None:
+            LOG.error("Please provide secrets dir!")
+            raise Exception
+
         self.bot_name = bot_name
 
-        # auth auth auth auth
-        SECRETS_DIR = os.path.join(os.path.abspath(os.path.dirname(__file__)), "SECRETS")
-
         LOG.debug("Retrieving CONSUMER_KEY...")
-        with open(os.path.join(SECRETS_DIR, "CONSUMER_KEY")) as f:
+        with open(os.path.join(secrets_dir, "CONSUMER_KEY")) as f:
             CONSUMER_KEY = f.read().strip()
 
         LOG.debug("Retrieving CONSUMER_SECRET...")
-        with open(os.path.join(SECRETS_DIR, "CONSUMER_SECRET")) as f:
+        with open(os.path.join(secrets_dir, "CONSUMER_SECRET")) as f:
             CONSUMER_SECRET = f.read().strip()
 
         LOG.debug("Retrieving ACCESS_TOKEN...")
-        with open(os.path.join(SECRETS_DIR, "ACCESS_TOKEN")) as f:
+        with open(os.path.join(secrets_dir, "ACCESS_TOKEN")) as f:
             ACCESS_TOKEN = f.read().strip()
 
         LOG.debug("Retrieving ACCESS_SECRET...")
-        with open(os.path.join(SECRETS_DIR, "ACCESS_SECRET")) as f:
+        with open(os.path.join(secrets_dir, "ACCESS_SECRET")) as f:
             ACCESS_SECRET = f.read().strip()
 
         LOG.debug("Looking for OWNER_HANDLE...")
-        owner_handle_path = os.path.join(SECRETS_DIR, "OWNER_HANDLE")
+        owner_handle_path = os.path.join(secrets_dir, "OWNER_HANDLE")
         if os.path.isfile(owner_handle_path):
             with open(owner_handle_path) as f:
                 self.owner_handle = f.read().strip()
