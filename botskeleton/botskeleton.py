@@ -13,7 +13,7 @@ LOG = logging.getLogger("root")
 LAST_CALLED = {}
 
 
-class BotSkeleton:
+class BotSkeleton():
     def __init__(self, bot_name="A bot"):
         """Authenticate and get access to API."""
         self.bot_name = bot_name

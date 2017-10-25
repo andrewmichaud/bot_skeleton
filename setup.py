@@ -27,9 +27,11 @@ setup(author="Andrew Michaud",
 
       license="BSD3",
 
-      name="bot_skeleton",
+      name="botskeleton",
 
       packages=find_packages(),
+
+      python_requires=">=3.6",
 
       url="https://github.com/andrewmichaud/bot_skeleton",
 

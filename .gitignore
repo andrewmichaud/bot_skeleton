@@ -1,3 +1,4 @@
-twitterbot_skeleton/__pycache__
+botskeleton/__pycache__
 dist
-bot_skeleton.egg-info/
+build
+botskeleton.egg-info/
