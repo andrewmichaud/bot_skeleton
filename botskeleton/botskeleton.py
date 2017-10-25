@@ -57,7 +57,7 @@ class BotSkeleton():
         # TODO can probably make this error stuff an annotation or something.
         try:
             self.api.update_status(text)
-        except tweepy.TweepyError as e:
+        except (tweepy.TweepError, tweepy.RateLimitError) as e:
             LOG.error(f"Got an error! {e}")
             self.end_dm_sos(f"Bot {self.bot_name} encountered an error when" +
                             f"sending post {text} without media:\n{e}\n")
@@ -66,7 +66,7 @@ class BotSkeleton():
         """Post, with media."""
         try:
             self.api.update_status(status=text, media_ids=media_ids)
-        except tweepy.TweepyError as e:
+        except (tweepy.TweepError, tweepy.RateLimitError) as e:
             LOG.error(f"Got an error! {e}")
             self.send_dm_sos(f"Bot {self.bot_name} encountered an error when" +
                              f"sending post {text} with media ids {media_ids}:\n{e}\n")
@@ -77,7 +77,7 @@ class BotSkeleton():
 
         try:
             return [self.api.media_upload(filename).media_id_string for filename in filenames]
-        except tweepy.TweepyError as e:
+        except (tweepy.TweepError, tweepy.RateLimitError) as e:
             LOG.error(f"Got an error! {e}")
             self.send_dm_sos(f"Bot {self.bot_name} encountered an error when" +
                              f"uploading {filenames}:\n{e}\n")
@@ -88,7 +88,7 @@ class BotSkeleton():
             try:
                 self.api.send_direct_message(message)
 
-            except tweepy.TweepyError as de:
+            except (tweepy.TweepError, tweepy.RateLimitError) as de:
                 LOG.error(f"Error trying to send DM about error!: {de}")
 
         else:
