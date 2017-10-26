@@ -95,7 +95,7 @@ class BotSkeleton():
         """Send DM to owner if something happens."""
         if self.owner_handle is not None:
             try:
-                self.api.send_direct_message(message)
+                self.api.send_direct_message(self.owner_handle, message)
 
             except (tweepy.TweepError, tweepy.RateLimitError) as de:
                 LOG.error(f"Error trying to send DM about error!: {de}")
