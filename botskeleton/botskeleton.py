@@ -2,9 +2,9 @@
 
 import logging
 import os
-import time
+import random
 import sys
-
+import time
 from logging.handlers import RotatingFileHandler
 
 import tweepy
@@ -61,6 +61,15 @@ class BotSkeleton():
             LOG.error(f"Got an error! {e}")
             self.end_dm_sos(f"Bot {self.bot_name} encountered an error when" +
                             f"sending post {text} without media:\n{e}\n")
+
+    def send_with_one_media(self, text, filename):
+        """Post, with one media."""
+        try:
+            self.api.update_with_media(filename, status=text)
+        except (tweepy.TweepError, tweepy.RateLimitError) as e:
+            LOG.error(f"Got an error! {e}")
+            self.send_dm_sos(f"Bot {self.bot_name} encountered an error when" +
+                             f"sending post {text} with filename {filename}:\n{e}\n")
 
     def send_with_media(self, text, media_ids):
         """Post, with media."""
@@ -128,9 +137,9 @@ def rate_limited(max_per_hour, *args):
         things = [func.__name__]
         things.extend(args)
         key = "".join(things)
-        LOG.debug("Rate limiter called for %s.", key)
+        LOG.debug(f"Rate limiter called for {key}.")
         if key not in LAST_CALLED:
-            LOG.debug("Initializing entry for %s.", key)
+            LOG.debug(f"Initializing entry for {key}.")
             LAST_CALLED[key] = 0.0
 
         def _rate_limited_function(*args, **kargs):
@@ -138,17 +147,33 @@ def rate_limited(max_per_hour, *args):
             now = time.time()
             elapsed = now - last_called
             remaining = min_interval - elapsed
-            LOG.debug("Rate limiter last called for '%s' at %s.", key, last_called)
-            LOG.debug("Remaining cooldown time for '%s' is %s.", key, remaining)
+            LOG.debug(f"Rate limiter last called for '{key}' at {last_called}.")
+            LOG.debug(f"Remaining cooldown time for '{key}' is {remaining}.")
 
             if remaining > 0 and last_called > 0.0:
-                LOG.info("Self-enforced rate limit hit, sleeping %s seconds.", remaining)
+                LOG.info(f"Self-enforced rate limit hit, sleeping {remaining} seconds.")
                 time.sleep(remaining)
 
             LAST_CALLED[key] = time.time()
             ret = func(*args, **kargs)
-            LOG.debug("Updating rate limiter last called for %s to %s.", key, now)
+            LOG.debug(f"Updating rate limiter last called for {key} to {now}.")
             return ret
 
         return _rate_limited_function
     return _decorate
+
+def random_line(file_path):
+    """Get random line from a file."""
+    # Fancy alg from http://stackoverflow.com/a/35579149 to avoid loading full file.
+    line_num = 0
+    selected_line = ""
+    with open(file_path) as f:
+        while 1:
+            line = f.readline()
+            if not line:
+                break
+            line_num += 1
+            if random.uniform(0, line_num) < 1:
+                selected_line = line
+
+    return selected_line.strip()
