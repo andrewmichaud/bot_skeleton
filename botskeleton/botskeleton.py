@@ -59,7 +59,7 @@ class BotSkeleton():
             self.api.update_status(text)
         except (tweepy.TweepError, tweepy.RateLimitError) as e:
             LOG.error(f"Got an error! {e}")
-            self.end_dm_sos(f"Bot {self.bot_name} encountered an error when" +
+            self.send_dm_sos(f"Bot {self.bot_name} encountered an error when " +
                             f"sending post {text} without media:\n{e}\n")
 
     def send_with_one_media(self, text, filename):
@@ -68,7 +68,7 @@ class BotSkeleton():
             self.api.update_with_media(filename, status=text)
         except (tweepy.TweepError, tweepy.RateLimitError) as e:
             LOG.error(f"Got an error! {e}")
-            self.send_dm_sos(f"Bot {self.bot_name} encountered an error when" +
+            self.send_dm_sos(f"Bot {self.bot_name} encountered an error when " +
                              f"sending post {text} with filename {filename}:\n{e}\n")
 
     def send_with_media(self, text, media_ids):
@@ -77,7 +77,7 @@ class BotSkeleton():
             self.api.update_status(status=text, media_ids=media_ids)
         except (tweepy.TweepError, tweepy.RateLimitError) as e:
             LOG.error(f"Got an error! {e}")
-            self.send_dm_sos(f"Bot {self.bot_name} encountered an error when" +
+            self.send_dm_sos(f"Bot {self.bot_name} encountered an error when " +
                              f"sending post {text} with media ids {media_ids}:\n{e}\n")
 
     def upload_media(self, *filenames):
@@ -88,14 +88,14 @@ class BotSkeleton():
             return [self.api.media_upload(filename).media_id_string for filename in filenames]
         except (tweepy.TweepError, tweepy.RateLimitError) as e:
             LOG.error(f"Got an error! {e}")
-            self.send_dm_sos(f"Bot {self.bot_name} encountered an error when" +
+            self.send_dm_sos(f"Bot {self.bot_name} encountered an error when " +
                              f"uploading {filenames}:\n{e}\n")
 
     def send_dm_sos(self, message):
         """Send DM to owner if something happens."""
         if self.owner_handle is not None:
             try:
-                self.api.send_direct_message(self.owner_handle, message)
+                self.api.send_direct_message(user=self.owner_handle, text=message)
 
             except (tweepy.TweepError, tweepy.RateLimitError) as de:
                 LOG.error(f"Error trying to send DM about error!: {de}")
