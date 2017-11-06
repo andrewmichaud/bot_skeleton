@@ -1,5 +1,6 @@
 """Skeleton for twitter bots. Spooky."""
 import logging
+import json
 import random
 import sys
 import time
@@ -60,6 +61,7 @@ class BotSkeleton():
     def send(self, text):
         """Post, without media."""
         # TODO can probably make this error stuff an annotation or something.
+        status = ""
         try:
             status = self.api.update_status(text)
             LOG.debug(f"Status object from tweet: {status}.")
