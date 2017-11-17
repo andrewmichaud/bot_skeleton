@@ -1,3 +1,4 @@
+"""setup.py for botskeleton"""
 from os import path
 from setuptools import setup, find_packages
 
@@ -19,7 +20,7 @@ setup(author="Andrew Michaud",
                    "Programming Language :: Python :: 3.6",
                    "Programming Language :: Python :: Implementation :: CPython",
                    "Topic :: Software Development :: Libraries"
-                   ],
+                  ],
 
       entry_points={},
 

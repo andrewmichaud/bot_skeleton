@@ -260,7 +260,7 @@ def rate_limited(max_per_hour, *args):
 
             if remaining > 0 and last_called > 0.0:
                 LOG.info(f"Self-enforced rate limit hit, sleeping {remaining} seconds.")
-                for i in progress.bar(range(math.ceiling(remaining))):
+                for i in progress.bar(range(math.ceil(remaining))):
                     time.sleep(1)
 
             LAST_CALLED[key] = time.time()
