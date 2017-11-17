@@ -1,6 +1,7 @@
 """Skeleton for twitter bots. Spooky."""
 import logging
 import json
+import math
 import random
 import sys
 import time
