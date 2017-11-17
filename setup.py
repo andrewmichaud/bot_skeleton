@@ -23,7 +23,7 @@ setup(author="Andrew Michaud",
 
       entry_points={},
 
-      install_requires=["tweepy>=3.5"],
+      install_requires=["tweepy>=3.5", "clint>=0.5.1, <0.6.0"],
 
       license="BSD3",
 

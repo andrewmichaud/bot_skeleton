@@ -9,6 +9,7 @@ from logging.handlers import RotatingFileHandler
 from os import path
 
 import tweepy
+from clint.textui import progress
 
 LOG = logging.getLogger("root")
 LAST_CALLED = {}
@@ -140,7 +141,8 @@ class BotSkeleton():
     def nap(self):
         """Go to sleep for a bit."""
         LOG.info(f"Sleeping for {self.delay} seconds.")
-        time.sleep(self.delay)
+        for s in progress.bar(range(self.delay)):
+            time.sleep(1)
 
     def store_extra_info(self, key, value):
         """Store some extra value in the tweet storage."""
@@ -257,7 +259,8 @@ def rate_limited(max_per_hour, *args):
 
             if remaining > 0 and last_called > 0.0:
                 LOG.info(f"Self-enforced rate limit hit, sleeping {remaining} seconds.")
-                time.sleep(remaining)
+                for i in progress.bar(range(math.ceiling(remaining))):
+                    time.sleep(1)
 
             LAST_CALLED[key] = time.time()
             ret = func(*args, **kargs)
