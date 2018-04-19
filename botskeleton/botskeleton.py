@@ -70,7 +70,7 @@ class BotSkeleton():
             self.log.error(f"Got an error! {e}")
             self.send_dm_sos(f"Bot {self.bot_name} encountered an error when " +
                              f"sending post {text} without media:\n{e}\n")
-            record = BotSkeleton.TweetRecord(text=text, error=str(e), extra_keys=self.extra_keys)
+            record = BotSkeleton.TweetRecord(text=text, error=e, extra_keys=self.extra_keys)
 
         self.history.append(record)
         self.update_history()
@@ -89,7 +89,7 @@ class BotSkeleton():
             self.log.error(f"Got an error! {e}")
             self.send_dm_sos(f"Bot {self.bot_name} encountered an error when " +
                              f"sending post {text} with filename {filename}:\n{e}\n")
-            record = BotSkeleton.TweetRecord(text=text, error=str(e), extra_keys=self.extra_keys)
+            record = BotSkeleton.TweetRecord(text=text, error=e, extra_keys=self.extra_keys)
 
         self.history.append(record)
         self.update_history()
@@ -108,7 +108,7 @@ class BotSkeleton():
             self.log.error(f"Got an error! {e}")
             self.send_dm_sos(f"Bot {self.bot_name} encountered an error when " +
                              f"sending post {text} with media ids {media_ids}:\n{e}\n")
-            record = BotSkeleton.TweetRecord(text=text, error=str(e), extra_keys=self.extra_keys)
+            record = BotSkeleton.TweetRecord(text=text, error=e, extra_keys=self.extra_keys)
 
         self.history.append(record)
         self.update_history()
@@ -125,7 +125,7 @@ class BotSkeleton():
             self.log.error(f"Got an error! {e}")
             self.send_dm_sos(f"Bot {self.bot_name} encountered an error when " +
                              f"uploading {filenames}:\n{e}\n")
-            record = BotSkeleton.TweetRecord(error=str(e), extra_keys=self.extra_keys)
+            record = BotSkeleton.TweetRecord(error=e, extra_keys=self.extra_keys)
             self.history.append(record)
             self.update_history()
 
