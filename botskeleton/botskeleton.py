@@ -199,8 +199,12 @@ class BotSkeleton():
             self.filename = filename
             self.media_ids = media_ids
             if error is not None:
-                self.error_code = error["code"]
-                self.error_message = error["message"]
+                self.error = error
+                if isinstance(error.message, str):
+                    self.error_message = error.message
+                elif isinstance(error.message, list):
+                    self.error_code = error.message[0]['code']
+                    self.error_message = error.message[0]['message']
 
             self.extra_keys = extra_keys
 
