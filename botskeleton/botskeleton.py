@@ -200,11 +200,15 @@ class BotSkeleton():
             self.media_ids = media_ids
             if error is not None:
                 self.error = error
-                if isinstance(error.message, str):
-                    self.error_message = error.message
-                elif isinstance(error.message, list):
-                    self.error_code = error.message[0]['code']
-                    self.error_message = error.message[0]['message']
+                try:
+                    if isinstance(error.message, str):
+                        self.error_message = error.message
+                    elif isinstance(error.message, list):
+                        self.error_code = error.message[0]['code']
+                        self.error_message = error.message[0]['message']
+                except AttributeError:
+                    # fine, I didn't want it anyways.
+                    pass
 
             self.extra_keys = extra_keys
 
