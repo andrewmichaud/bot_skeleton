@@ -199,7 +199,8 @@ class BotSkeleton():
             self.filename = filename
             self.media_ids = media_ids
             if error is not None:
-                self.error = error
+                # So Python doesn't get upset when we try to json-dump the record later.
+                self.error = json.dumps(error.__dict__)
                 try:
                     if isinstance(error.message, str):
                         self.error_message = error.message
