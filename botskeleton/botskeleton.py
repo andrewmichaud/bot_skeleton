@@ -71,9 +71,10 @@ class BotSkeleton():
                                              extra_keys=self.extra_keys)
 
         except tweepy.TweepError as e:
-            message = f"Bot {self.bot_name} encountered an error when " +
-                      f"sending post {text} without media:\n{e}\n"
-            record = handle_error(message, e)
+            record = handle_error(
+                (f"Bot {self.bot_name} encountered an error when "
+                 f"sending post {text} without media:\n{e}\n"),
+                e)
 
         self.history.append(record)
         self.update_history()
@@ -89,9 +90,10 @@ class BotSkeleton():
                                              filename=filename, extra_keys=self.extra_keys)
 
         except tweepy.TweepError as e:
-            message = f"Bot {self.bot_name} encountered an error when " +
-                      f"sending post {text} with filename {filename}:\n{e}\n"
-            record = handle_error(message, e)
+            record = handle_error(
+                (f"Bot {self.bot_name} encountered an error when "
+                 f"sending post {text} with filename {filename}:\n{e}\n"),
+                e)
 
         self.history.append(record)
         self.update_history()
@@ -107,9 +109,10 @@ class BotSkeleton():
                                              media_ids=media_ids, extra_keys=self.extra_keys)
 
         except tweepy.TweepError as e:
-            message = f"Bot {self.bot_name} encountered an error when " +
-                      f"sending post {text} with media ids {media_ids}:\n{e}\n"
-            record = handle_error(message, e)
+            record = handle_error(
+                (f"Bot {self.bot_name} encountered an error when "
+                 f"sending post {text} with media ids {media_ids}:\n{e}\n"),
+                e)
 
         self.history.append(record)
         self.update_history()
@@ -123,9 +126,9 @@ class BotSkeleton():
         try:
             return [self.api.media_upload(filename).media_id_string for filename in filenames]
         except tweepy.TweepError as e:
-            message = f"Bot {self.bot_name} encountered an error when " +
-                      f"uploading {filenames}:\n{e}\n"
-            record = handle_error(message, e)
+            record = handle_error(
+                f"Bot {self.bot_name} encountered an error when uploading {filenames}:\n{e}\n",
+                e)
 
         self.history.append(record)
         self.update_history()
