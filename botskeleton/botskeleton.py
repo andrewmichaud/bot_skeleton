@@ -27,7 +27,7 @@ class BotSkeleton():
         self.history = self.load_history()
 
         self.handled_errors = {
-            187: default_duplicate_handler(),
+            187: self.default_duplicate_handler,
         }
 
         self.log.debug("Retrieving CONSUMER_KEY...")
