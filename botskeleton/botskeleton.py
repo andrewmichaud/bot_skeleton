@@ -26,6 +26,10 @@ class BotSkeleton():
         self.extra_keys = {}
         self.history = self.load_history()
 
+        self.handled_errors = {
+            187: default_duplicate_handler(),
+        }
+
         self.log.debug("Retrieving CONSUMER_KEY...")
         with open(path.join(self.secrets_dir, "CONSUMER_KEY")) as f:
             CONSUMER_KEY = f.read().strip()
@@ -67,10 +71,9 @@ class BotSkeleton():
                                              extra_keys=self.extra_keys)
 
         except tweepy.TweepError as e:
-            self.log.error(f"Got an error! {e}")
-            self.send_dm_sos(f"Bot {self.bot_name} encountered an error when " +
-                             f"sending post {text} without media:\n{e}\n")
-            record = BotSkeleton.TweetRecord(text=text, error=e, extra_keys=self.extra_keys)
+            message = f"Bot {self.bot_name} encountered an error when " +
+                      f"sending post {text} without media:\n{e}\n"
+            record = handle_error(message, e)
 
         self.history.append(record)
         self.update_history()
@@ -86,10 +89,9 @@ class BotSkeleton():
                                              filename=filename, extra_keys=self.extra_keys)
 
         except tweepy.TweepError as e:
-            self.log.error(f"Got an error! {e}")
-            self.send_dm_sos(f"Bot {self.bot_name} encountered an error when " +
-                             f"sending post {text} with filename {filename}:\n{e}\n")
-            record = BotSkeleton.TweetRecord(text=text, error=e, extra_keys=self.extra_keys)
+            message = f"Bot {self.bot_name} encountered an error when " +
+                      f"sending post {text} with filename {filename}:\n{e}\n"
+            record = handle_error(message, e)
 
         self.history.append(record)
         self.update_history()
@@ -105,10 +107,9 @@ class BotSkeleton():
                                              media_ids=media_ids, extra_keys=self.extra_keys)
 
         except tweepy.TweepError as e:
-            self.log.error(f"Got an error! {e}")
-            self.send_dm_sos(f"Bot {self.bot_name} encountered an error when " +
-                             f"sending post {text} with media ids {media_ids}:\n{e}\n")
-            record = BotSkeleton.TweetRecord(text=text, error=e, extra_keys=self.extra_keys)
+            message = f"Bot {self.bot_name} encountered an error when " +
+                      f"sending post {text} with media ids {media_ids}:\n{e}\n"
+            record = handle_error(message, e)
 
         self.history.append(record)
         self.update_history()
@@ -122,12 +123,12 @@ class BotSkeleton():
         try:
             return [self.api.media_upload(filename).media_id_string for filename in filenames]
         except tweepy.TweepError as e:
-            self.log.error(f"Got an error! {e}")
-            self.send_dm_sos(f"Bot {self.bot_name} encountered an error when " +
-                             f"uploading {filenames}:\n{e}\n")
-            record = BotSkeleton.TweetRecord(error=e, extra_keys=self.extra_keys)
-            self.history.append(record)
-            self.update_history()
+            message = f"Bot {self.bot_name} encountered an error when " +
+                      f"uploading {filenames}:\n{e}\n"
+            record = handle_error(message, e)
+
+        self.history.append(record)
+        self.update_history()
 
     def send_dm_sos(self, message):
         """Send DM to owner if something happens."""
@@ -140,6 +141,18 @@ class BotSkeleton():
 
         else:
             self.log.error("Can't send DM SOS, no owner handle.")
+
+    def handle_error(self, message, e):
+        """Handle error while trying to do something."""
+            self.log.error(f"Got an error! {e}")
+
+            # Handle errors if we know how.
+            code = e[0]["code"]
+            if code in self.handled_errors:
+                self.handled_errors[code]
+            else:
+                self.send_dm_sos(message)
+            return BotSkeleton.TweetRecord(error=e, extra_keys=self.extra_keys)
 
     def nap(self):
         """Go to sleep for a bit."""
@@ -223,6 +236,14 @@ class BotSkeleton():
             obj = cls.__new__(cls)
             obj.__dict__ = obj_dict.copy()
             return obj
+
+    def default_duplicate_handler():
+        """Default handler for duplicate status error."""
+        self.log.info("who cares about duplicate statuses.")
+        return
+
+    def set_duplicate_handler(duplicate_handler):
+        self.handled_errors[187] = duplicate_handler
 
 def rate_limited(max_per_hour, *args):
     """Rate limit a function."""
