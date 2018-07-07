@@ -147,15 +147,20 @@ class BotSkeleton():
 
     def handle_error(self, message, e):
         """Handle error while trying to do something."""
-            self.log.error(f"Got an error! {e}")
+        self.log.error(f"Got an error! {e}")
 
-            # Handle errors if we know how.
+        # Handle errors if we know how.
+        try:
             code = e[0]["code"]
             if code in self.handled_errors:
                 self.handled_errors[code]
             else:
                 self.send_dm_sos(message)
-            return BotSkeleton.TweetRecord(error=e, extra_keys=self.extra_keys)
+
+        except Exception:
+            self.send_dm_sos(message)
+
+        return BotSkeleton.TweetRecord(error=e, extra_keys=self.extra_keys)
 
     def nap(self):
         """Go to sleep for a bit."""
