@@ -5,12 +5,13 @@ from datetime import datetime
 from os import path
 
 import drewtilities as util
-import tweepy
 from clint.textui import progress
 
+from .outputs.output_birdsite import BirdsiteSkeleton, TweetRecord
+
 class BotSkeleton():
-    def __init__(self, secrets_dir=None, log_filename="log", bot_name="A bot", delay=0):
-        """Authenticate and get access to API."""
+    def __init__(self, secrets_dir=None, log_filename="log", bot_name="A bot", delay=3600):
+        """Set up generic skeleton stuff."""
 
         self.log_filename = log_filename
         self.log = util.set_up_logging(log_filename=self.log_filename)
@@ -26,55 +27,54 @@ class BotSkeleton():
         self.extra_keys = {}
         self.history = self.load_history()
 
-        self.handled_errors = {
-            187: self.default_duplicate_handler,
+        self.outputs = {
+            "birdsite": {
+                "active": False,
+                "obj_name": BirdsiteSkeleton,
+                "obj": None,
+            },
+            "mastodon": {
+                "active": False,
+                "obj": None,
+            },
         }
 
-        self.log.debug("Retrieving CONSUMER_KEY...")
-        with open(path.join(self.secrets_dir, "CONSUMER_KEY")) as f:
-            CONSUMER_KEY = f.read().strip()
+        self.setup_all_outputs()
 
-        self.log.debug("Retrieving CONSUMER_SECRET...")
-        with open(path.join(self.secrets_dir, "CONSUMER_SECRET")) as f:
-            CONSUMER_SECRET = f.read().strip()
+    def setup_all_outputs(self):
+        """Set up all output methods. Provide them credentials and anything else they need."""
 
-        self.log.debug("Retrieving ACCESS_TOKEN...")
-        with open(path.join(self.secrets_dir, "ACCESS_TOKEN")) as f:
-            ACCESS_TOKEN = f.read().strip()
+        # The way this is gonna work is that we assume an output should be set up iff it has a
+        # credentials_ directory under our secrets dir.
+        for key in self.outputs.keys():
+            credentials_dir = path.join(self.secrets_dir, f"credentials_{key}")
+            if path.isdir(credentials_dir):
+                self.outputs[key]["active"] = True
+                # is this okay
+                self.outputs[key]["obj"] = self.outputs[key]["obj_name"](credentials_dir, self.log)
+                self.outputs[key]["obj"].bot_name = self.bot_name
 
-        self.log.debug("Retrieving ACCESS_SECRET...")
-        with open(path.join(self.secrets_dir, "ACCESS_SECRET")) as f:
-            ACCESS_SECRET = f.read().strip()
+        # Special-case birdsite for historical reasons.
+        key = "birdsite"
+        if not self.outputs[key]["active"] and \
+                path.isfile(path.join(self.secrets_dir, "CONSUMER_KEY")):
 
-        self.log.debug("Looking for OWNER_HANDLE...")
-        owner_handle_path = path.join(self.secrets_dir, "OWNER_HANDLE")
-        if path.isfile(owner_handle_path):
-            with open(owner_handle_path) as f:
-                self.owner_handle = f.read().strip()
-        else:
-            self.log.debug("Couldn't find OWNER_HANDLE, unable to DM...")
-            self.owner_handle = None
-
-        self.auth = tweepy.OAuthHandler(CONSUMER_KEY, CONSUMER_SECRET)
-        self.auth.set_access_token(ACCESS_TOKEN, ACCESS_SECRET)
-
-        self.api = tweepy.API(self.auth)
+            self.outputs[key]["active"] = True
+            self.outputs[key]["obj"] = self.outputs[key]["obj_name"](self.secrets_dir, self.log)
+            self.outputs[key]["obj"].bot_name = self.bot_name
 
     def send(self, text):
-        """Post, without media."""
-        # TODO can probably make this error stuff an annotation or something.
-        status = ""
-        try:
-            status = self.api.update_status(text)
-            self.log.debug(f"Status object from tweet: {status}.")
-            record = BotSkeleton.TweetRecord(tweet_id=status._json["id"], text=text,
-                                             extra_keys=self.extra_keys)
+        """Post, without media, to all outputs."""
+        # TODO there could be some annotation stuff here.
+        record = IterationRecord(extra_keys=self.extra_keys)
+        for key, output in self.outputs.items():
+            if output["active"]:
+                self.log.info(f"Output {key} is active, sending to it.")
+                output_result = output["obj"].send(text)
+                record.output_records[key] = output_result
 
-        except tweepy.TweepError as e:
-            record = handle_error(
-                (f"Bot {self.bot_name} encountered an error when "
-                 f"sending post {text} without media:\n{e}\n"),
-                e)
+            else:
+                self.log.info(f"Output {key} is inactive. Not sending.")
 
         self.history.append(record)
         self.update_history()
@@ -82,85 +82,28 @@ class BotSkeleton():
         return record
 
     def send_with_one_media(self, text, filename):
-        """Post, with one media."""
-        try:
-            status = self.api.update_with_media(filename, status=text)
-            self.log.debug(f"Status object from tweet: {status}.")
-            record = BotSkeleton.TweetRecord(tweet_id=status._json["id"], text=text,
-                                             filename=filename, extra_keys=self.extra_keys)
-
-        except tweepy.TweepError as e:
-            record = handle_error(
-                (f"Bot {self.bot_name} encountered an error when "
-                 f"sending post {text} with filename {filename}:\n{e}\n"),
-                e)
+        """Post, with one media item, to all outputs."""
+        record = IterationRecord(extra_keys=self.extra_keys)
+        for key, output in self.outputs.items():
+            output_result = output["obj"].send_with_one_media(text, filename)
+            record.output_records[key] = output_result
 
         self.history.append(record)
         self.update_history()
 
         return record
 
-    def send_with_media(self, text, media_ids):
-        """Post, with media."""
-        try:
-            status = self.api.update_status(status=text, media_ids=media_ids)
-            self.log.debug(f"Status object from tweet: {status}.")
-            record = BotSkeleton.TweetRecord(tweet_id=status._json["id"], text=text,
-                                             media_ids=media_ids, extra_keys=self.extra_keys)
-
-        except tweepy.TweepError as e:
-            record = handle_error(
-                (f"Bot {self.bot_name} encountered an error when "
-                 f"sending post {text} with media ids {media_ids}:\n{e}\n"),
-                e)
+    def send_with_many_media(self, text, *filenames):
+        """Post with several media. Provide filenames so outputs can handle their own uploads."""
+        record = IterationRecord(extra_keys=self.extra_keys)
+        for key, output in self.outputs.items():
+            output_result = output["obj"].send_with_many_media(text, filenames)
+            record.output_records[key] = output_result
 
         self.history.append(record)
         self.update_history()
 
         return record
-
-    def upload_media(self, *filenames):
-        """Upload media, to be attached to post."""
-        self.log.debug(f"Uploading filenames {filenames} to birdsite. Returning media ids.")
-
-        try:
-            return [self.api.media_upload(filename).media_id_string for filename in filenames]
-        except tweepy.TweepError as e:
-            record = handle_error(
-                f"Bot {self.bot_name} encountered an error when uploading {filenames}:\n{e}\n",
-                e)
-
-        self.history.append(record)
-        self.update_history()
-
-    def send_dm_sos(self, message):
-        """Send DM to owner if something happens."""
-        if self.owner_handle is not None:
-            try:
-                _ = self.api.send_direct_message(user=self.owner_handle, text=message)
-
-            except tweepy.TweepError as de:
-                self.log.error(f"Error trying to send DM about error!: {de}")
-
-        else:
-            self.log.error("Can't send DM SOS, no owner handle.")
-
-    def handle_error(self, message, e):
-        """Handle error while trying to do something."""
-        self.log.error(f"Got an error! {e}")
-
-        # Handle errors if we know how.
-        try:
-            code = e[0]["code"]
-            if code in self.handled_errors:
-                self.handled_errors[code]
-            else:
-                self.send_dm_sos(message)
-
-        except Exception:
-            self.send_dm_sos(message)
-
-        return BotSkeleton.TweetRecord(error=e, extra_keys=self.extra_keys)
 
     def nap(self):
         """Go to sleep for a bit."""
@@ -182,7 +125,23 @@ class BotSkeleton():
         filename = path.join(self.secrets_dir, f"{self.bot_name}-history.json")
 
         self.log.debug(f"Saving history. History is: \n{self.history}")
-        jsons = [item.__dict__ for item in self.history]
+
+        jsons = []
+        for item in self.history:
+            json_item = item.__dict__
+
+            # Convert sub-entries into JSON as well.
+            output_records = {}
+            for key, sub_item in item.output_records.items():
+                if isinstance(sub_item, dict):
+                    output_records[key] = sub_item
+                else:
+                    output_records[key] = sub_item.__dict__
+
+            json_item["output_records"] = output_records
+
+            jsons.append(json_item)
+
         if not path.isfile(filename):
             with open(filename, "a+") as f:
                 f.close()
@@ -202,56 +161,54 @@ class BotSkeleton():
                     self.log.error(f"Got error \n{e}\n decoding JSON history, overwriting it.")
                     return []
 
-                history = [BotSkeleton.TweetRecord.from_dict(dict) for dict in dicts]
-                self.log.debug(f"Loaded history\n {history}")
+                history = []
+                for hdict in dicts:
+                    # Be sure to handle legacy tweetrecord-only histories.
+                    # Assume anything without our new _type (which should have been there from the
+                    # start) is a legacy history.
+                    if hasattr(hdict, "_type") and \
+                            hdict["_type"] == IterationRecord.__class__.__name__:
+                        history.append(IterationRecord.from_dict(hdict))
+
+                    else:
+                        hdict_obj = TweetRecord.from_dict(hdict)
+
+                        item = IterationRecord()
+                        # Lift timestamp up to upper record.
+                        item.timestamp = hdict_obj.timestamp
+                        item.extra_keys = hdict_obj.extra_keys
+
+                        item.output_records["birdsite"] = hdict_obj
+
+                        history.append(item)
+
+                self.log.debug(f"Loaded history:\n {history}")
 
                 return history
 
         else:
             return []
 
-    class TweetRecord:
-        def __init__(self, tweet_id=None, text=None, filename=None, media_ids=[],
-                     error=None, extra_keys={}):
-            """Create tweet record object."""
-            self.timestamp = datetime.now().isoformat()
-            self.tweet_id = tweet_id
-            self.text = text
-            self.filename = filename
-            self.media_ids = media_ids
-            if error is not None:
-                # So Python doesn't get upset when we try to json-dump the record later.
-                self.error = json.dumps(error.__dict__)
-                try:
-                    if isinstance(error.message, str):
-                        self.error_message = error.message
-                    elif isinstance(error.message, list):
-                        self.error_code = error.message[0]['code']
-                        self.error_message = error.message[0]['message']
-                except AttributeError:
-                    # fine, I didn't want it anyways.
-                    pass
 
-            self.extra_keys = extra_keys
+class IterationRecord:
+    """Record of one iteration. Includes records of all outputs."""
+    def __init__(self, extra_keys={}):
+        self._type = self.__class__.__name__
+        self.timestamp = datetime.now().isoformat()
+        self.extra_keys = extra_keys
+        self.output_records = {}
 
-        def __str__(self):
-            """Print object."""
-            return self.__dict__
+    def __str__(self):
+        """Print object."""
+        return self.__dict__
 
-        @classmethod
-        def from_dict(cls, obj_dict):
-            """Get object back from dict."""
-            obj = cls.__new__(cls)
-            obj.__dict__ = obj_dict.copy()
-            return obj
+    @classmethod
+    def from_dict(cls, obj_dict):
+        """Get object back from dict."""
+        obj = cls.__new__(cls)
+        obj.__dict__ = obj_dict.copy()
+        return obj
 
-    def default_duplicate_handler():
-        """Default handler for duplicate status error."""
-        self.log.info("who cares about duplicate statuses.")
-        return
-
-    def set_duplicate_handler(duplicate_handler):
-        self.handled_errors[187] = duplicate_handler
 
 def rate_limited(max_per_hour, *args):
     """Rate limit a function."""
