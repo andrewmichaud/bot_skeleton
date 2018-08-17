@@ -4,9 +4,11 @@ from datetime import datetime
 class OutputSkeleton:
     """Common stuff for output skeletons."""
     def __init__(self, secrets_dir, log):
-        self.name = ""
         self.log = log
         self.secrets_dir = secrets_dir
+
+        self.name = ""
+        self.handled_errors = {}
 
     def linfo(self, message):
         """Wrapped debug log with prefix key."""

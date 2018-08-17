@@ -8,6 +8,7 @@ import drewtilities as util
 from clint.textui import progress
 
 from .outputs.output_birdsite import BirdsiteSkeleton, TweetRecord
+from .outputs.output_mastodon import MastodonSkeleton, TootRecord
 
 class BotSkeleton():
     def __init__(self, secrets_dir=None, log_filename="log", bot_name="A bot", delay=3600):
@@ -35,6 +36,7 @@ class BotSkeleton():
             },
             "mastodon": {
                 "active": False,
+                "obj_name": MastodonSkeleton,
                 "obj": None,
             },
         }

@@ -1,4 +1,5 @@
 """Skeleton code for sending to the bad bird site."""
+import json
 from os import path
 
 import tweepy

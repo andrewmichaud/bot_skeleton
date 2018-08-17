@@ -25,8 +25,9 @@ setup(author="Andrew Michaud",
       entry_points={},
 
       install_requires=["clint>=0.5.1, <0.6.0",
-                        "drewtilities>=1.0.4, <2.0.0",
-                        "tweepy>=3.5, <4.0",
+                        "drewtilities>=1.0.5, <2.0.0",
+                        "tweepy>=3.6, <4.0",
+                        "Mastodon.py>=1.3.1, <2.0",
                        ],
 
       license="BSD3",
