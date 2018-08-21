@@ -176,9 +176,10 @@ class BotSkeleton():
                         hdict_obj = TweetRecord.from_dict(hdict)
 
                         item = IterationRecord()
-                        # Lift timestamp up to upper record.
+                        # Lift timestamp up to upper record, and extra keys.
                         item.timestamp = hdict_obj.timestamp
-                        item.extra_keys = hdict_obj.extra_keys
+                        if hasattr(hdict, "extra_keys"):
+                            item.extra_keys = hdict["extra_keys"]
 
                         item.output_records["birdsite"] = hdict_obj
 
