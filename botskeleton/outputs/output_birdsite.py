@@ -73,7 +73,7 @@ class BirdsiteSkeleton(OutputSkeleton):
                  f"sending post {text} with filename {filename}:\n{e}\n"),
                 e)
 
-    def send_with_many_media(self, text, *filenames):
+    def send_with_many_media(self, text, filenames):
         """Upload media to birdsite, and send status and media."""
 
         media_ids = None

@@ -49,7 +49,7 @@ class MastodonSkeleton(OutputSkeleton):
         filenames = [filename]
         return self.send_with_many_media(text, *filenames)
 
-    def send_with_many_media(self, text, *filenames):
+    def send_with_many_media(self, text, filenames):
         """Upload media to mastodon, and send status and media."""
         media_ids = None
         try:
