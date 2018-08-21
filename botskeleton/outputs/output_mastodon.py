@@ -55,7 +55,8 @@ class MastodonSkeleton(OutputSkeleton):
         try:
             self.ldebug(f"Uploading filenames {filenames}.")
             # TODO could probably put in some sensible, somewhat-useful descriptions on upload.
-            media_ids = [self.api.media_post(filename)["id"] for filename in filenames]
+            media_dicts = [self.api.media_post(filename) for filename in filenames]
+            self.ldebug(f"Media ids {media_dicts}")
 
         except mastodon.MastodonError as e:
             return self.handle_error(
@@ -63,9 +64,9 @@ class MastodonSkeleton(OutputSkeleton):
                 e)
 
         try:
-            status = self.api.status_post(status=text)
+            status = self.api.status_post(status=text, media_ids=media_dicts)
             self.ldebug(f"Status object from toot: {status}.")
-            return TootRecord(toot_id=status["id"], text=text, media_ids=media_ids)
+            return TootRecord(toot_id=status["id"], text=text, media_ids=media_dicts)
 
         except mastodon.MastodonError as e:
             return self.handle_error(
