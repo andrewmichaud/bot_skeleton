@@ -47,7 +47,7 @@ class MastodonSkeleton(OutputSkeleton):
     def send_with_one_media(self, text, filename):
         """Send mastodon message, with one media."""
         filenames = [filename]
-        return self.send_with_many_media(text, *filenames)
+        return self.send_with_many_media(text, filenames)
 
     def send_with_many_media(self, text, filenames):
         """Upload media to mastodon, and send status and media."""
