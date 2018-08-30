@@ -1,0 +1,29 @@
+3.0.2 (2018-08-30):
+Multi-output bugfixes
+* BREAKING CHANGES
+    * upload_media had to go to make multi-output work in a reasonable way. I did this without
+      thinking, which is why 2.2.0 wasn't marked as breaking. I realized I didn't have an easy way
+      to restore it, so I'm just admitting this is breaking now.  Replace calls to upload_media
+      followed by send_with_many_media just with send_with_many_media - it will do the upload_media
+      appropriate for the given service.
+
+* BUGFIXES
+    * send_with_many_media in outputs has unnecessary (and broken?) use of splat operator
+    * mastodon actually extremely misused splats
+    * didn't pass up extra keys while adapting old birdsite records to new multirecords
+    * mastodon output didn't pass media ids when sending correctly, meaning images never made it to
+      toots
+
+2.2.0 (2018-08-17):
+Multi-output
+* FEATURES
+    * Support more than one site!!!
+    * Rework output from skeleton so it doesn't assume only one site output.
+    * Move birdsite to a new output separate from the main one.
+    * Add support for Mastodon.
+    * Change record formatting to multi-output site, convert old records in-place.
+
+2.0.5 (2018-05-22):
+Bugfixes
+    * BUGFIXES
+        * Dump errors from birdsite as text, so json dumping works easily.
