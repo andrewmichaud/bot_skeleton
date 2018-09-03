@@ -149,7 +149,7 @@ class BotSkeleton():
                 f.close()
 
         with open(filename, "w") as f:
-            json.dump(jsons, f)
+            json.dump(jsons, f, default=lambda x: x.__dict__().copy())
 
     def load_history(self):
         """Load tweet history."""
