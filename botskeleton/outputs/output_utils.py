@@ -39,7 +39,11 @@ class OutputRecord:
 
     def __str__(self):
         """Print object."""
-        return self.__dict__
+        return str(self.__dict__)
+
+    def __repr__(self):
+        """repr object"""
+        return str(self)
 
     @classmethod
     def from_dict(cls, obj_dict):

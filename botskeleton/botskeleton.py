@@ -11,19 +11,25 @@ from .outputs.output_birdsite import BirdsiteSkeleton, TweetRecord
 from .outputs.output_mastodon import MastodonSkeleton, TootRecord
 
 class BotSkeleton():
-    def __init__(self, secrets_dir=None, log_filename="log", bot_name="A bot", delay=3600):
+    def __init__(self, secrets_dir=None, log_filename="log", history_filename=None,
+                 bot_name="A bot", delay=3600):
         """Set up generic skeleton stuff."""
 
         self.log_filename = log_filename
         self.log = util.set_up_logging(log_filename=self.log_filename)
 
         if secrets_dir is None:
-            self.log.error("Please provide secrets dir!")
-            raise Exception
+            msg = "Please provide secrets dir!"
+            self.log.error(msg)
+            raise BotSkeletonException(desc=msg)
 
         self.secrets_dir = secrets_dir
         self.bot_name = bot_name
         self.delay = delay
+
+        if history_filename is None:
+            history_filename = path.join(self.secrets_dir, f"{self.bot_name}-history.json")
+        self.history_filename = history_filename
 
         self.extra_keys = {}
         self.history = self.load_history()
@@ -124,7 +130,6 @@ class BotSkeleton():
 
     def update_history(self):
         """Update tweet history."""
-        filename = path.join(self.secrets_dir, f"{self.bot_name}-history.json")
 
         self.log.debug(f"Saving history. History is: \n{self.history}")
 
@@ -153,9 +158,8 @@ class BotSkeleton():
 
     def load_history(self):
         """Load tweet history."""
-        filename = path.join(self.secrets_dir, f"{self.bot_name}-history.json")
-        if path.isfile(filename):
-            with open(filename, "r") as f:
+        if path.isfile(self.history_filename):
+            with open(self.history_filename, "r") as f:
                 try:
                     dicts = json.load(f)
 
@@ -203,7 +207,11 @@ class IterationRecord:
 
     def __str__(self):
         """Print object."""
-        return self.__dict__
+        return str(self.__dict__)
+
+    def __repr__(self):
+        """repr object"""
+        return str(self)
 
     @classmethod
     def from_dict(cls, obj_dict):
@@ -224,3 +232,14 @@ def set_up_logging(log_filename):
 def random_line(file_path):
     """Get random line from file."""
     return util.random_line(file_path=file_path)
+
+class BotSkeletonException(Exception):
+    """
+    Generic Exception for errors in this project
+
+    Attributes:
+        desc  -- short message describing error
+    """
+    def __init__(self, desc:str) -> None:
+        super(BotSkeletonException, self).__init__()
+        self.desc = desc

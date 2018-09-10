@@ -4,6 +4,19 @@ from setuptools import setup, find_packages
 
 HERE = path.abspath(path.dirname(__file__))
 
+INSTALL_REQUIRES = ["clint>=0.5.1, <0.6.0",
+                    "drewtilities>=1.0.5, <2.0.0",
+                    "tweepy>=3.6, <4.0",
+                    "Mastodon.py>=1.3.1, <2.0",
+                    ]
+
+TESTS_REQUIRE = ["coveralls>=1.5.0, <2.0.0",
+                 "pytest>=3.8.0, <4.0.0"
+                 ]
+
+SETUP_REQUIRES = ["pytest-runner"
+                  ]
+
 with open(path.join(HERE, "VERSION"), encoding="utf-8") as f:
     VERSION = f.read().strip()
 
@@ -24,11 +37,10 @@ setup(author="Andrew Michaud",
 
       entry_points={},
 
-      install_requires=["clint>=0.5.1, <0.6.0",
-                        "drewtilities>=1.0.5, <2.0.0",
-                        "tweepy>=3.6, <4.0",
-                        "Mastodon.py>=1.3.1, <2.0",
-                       ],
+      install_requires=INSTALL_REQUIRES,
+      python_requires=">=3.6",
+      setup_requires=SETUP_REQUIRES,
+      tests_require=TESTS_REQUIRE,
 
       license="BSD3",
 
@@ -36,7 +48,6 @@ setup(author="Andrew Michaud",
 
       packages=find_packages(),
 
-      python_requires=">=3.6",
 
       url="https://github.com/andrewmichaud/bot_skeleton",
 
