@@ -1,7 +1,9 @@
 """Skeleton for twitter bots. Spooky."""
 import json
 import time
+import typing
 from datetime import datetime
+from logging import Logger
 from os import path
 from shutil import copyfile
 
@@ -10,10 +12,11 @@ from clint.textui import progress
 
 from .outputs.output_birdsite import BirdsiteSkeleton, TweetRecord
 from .outputs.output_mastodon import MastodonSkeleton, TootRecord
+from .output_utils import OutputSkeleton, OutputRecord
 
 class BotSkeleton():
-    def __init__(self, secrets_dir=None, log_filename="log", history_filename=None,
-                 bot_name="A bot", delay=3600):
+    def __init__(self, secrets_dir:str=None, log_filename:str="log", history_filename:str=None,
+                 bot_name:str="A bot", delay:int=3600) -> None:
         """Set up generic skeleton stuff."""
 
         self.log_filename = log_filename
@@ -32,7 +35,7 @@ class BotSkeleton():
             history_filename = path.join(self.secrets_dir, f"{self.bot_name}-history.json")
         self.history_filename = history_filename
 
-        self.extra_keys = {}
+        self.extra_keys: typing.Dict[str, typing.Any] = {}
         self.history = self.load_history()
 
         self.outputs = {
@@ -50,7 +53,7 @@ class BotSkeleton():
 
         self.setup_all_outputs()
 
-    def setup_all_outputs(self):
+    def setup_all_outputs(self) -> None:
         """Set up all output methods. Provide them credentials and anything else they need."""
 
         # The way this is gonna work is that we assume an output should be set up iff it has a
@@ -68,18 +71,22 @@ class BotSkeleton():
         if not self.outputs[key]["active"] and \
                 path.isfile(path.join(self.secrets_dir, "CONSUMER_KEY")):
 
-            self.outputs[key]["active"] = True
-            self.outputs[key]["obj"] = self.outputs[key]["obj_name"](self.secrets_dir, self.log)
-            self.outputs[key]["obj"].bot_name = self.bot_name
+            output: OutputSkeleton = self.outputs[key]
+            output["active"] = True
+            output["obj"] = self.outputs[key]["obj_name"](self.secrets_dir, self.log)
+            output["obj"].bot_name = self.bot_name
 
-    def send(self, text):
+            self.outputs[key] = output
+
+    def send(self, text: str) -> IterationRecord:
         """Post, without media, to all outputs."""
         # TODO there could be some annotation stuff here.
         record = IterationRecord(extra_keys=self.extra_keys)
         for key, output in self.outputs.items():
             if output["active"]:
                 self.log.info(f"Output {key} is active, sending to it.")
-                output_result = output["obj"].send(text)
+                entry: OutputSkeleton = output["obj"]
+                output_result = entry.send(text)
                 record.output_records[key] = output_result
 
             else:
@@ -90,11 +97,12 @@ class BotSkeleton():
 
         return record
 
-    def send_with_one_media(self, text, filename):
+    def send_with_one_media(self, text: str, filename: str) -> IterationRecord:
         """Post, with one media item, to all outputs."""
         record = IterationRecord(extra_keys=self.extra_keys)
         for key, output in self.outputs.items():
-            output_result = output["obj"].send_with_one_media(text, filename)
+            entry: OutputSkeleton = output["obj"]
+            output_result = entry.send_with_one_media(text, filename)
             record.output_records[key] = output_result
 
         self.history.append(record)
@@ -102,11 +110,12 @@ class BotSkeleton():
 
         return record
 
-    def send_with_many_media(self, text, *filenames):
+    def send_with_many_media(self, text: str, *filenames: typing.List[str]) -> IterationRecord:
         """Post with several media. Provide filenames so outputs can handle their own uploads."""
         record = IterationRecord(extra_keys=self.extra_keys)
         for key, output in self.outputs.items():
-            output_result = output["obj"].send_with_many_media(text, filenames)
+            entry: OutputSkeleton = output["obj"]
+            output_result = entry.send_with_many_media(text, filenames)
             record.output_records[key] = output_result
 
         self.history.append(record)
@@ -114,22 +123,22 @@ class BotSkeleton():
 
         return record
 
-    def nap(self):
+    def nap(self) -> None:
         """Go to sleep for a bit."""
         self.log.info(f"Sleeping for {self.delay} seconds.")
         for _ in progress.bar(range(self.delay)):
             time.sleep(1)
 
-    def store_extra_info(self, key, value):
+    def store_extra_info(self, key: str, value: typing.Any) -> None:
         """Store some extra value in the tweet storage."""
         self.extra_keys[key] = value
 
-    def store_extra_keys(self, d):
+    def store_extra_keys(self, d: typing.Dict[str, typing.Any]) -> None:
         """Store several extra values in the tweet storage."""
         new_dict = dict(self.extra_keys, **d)
         self.extra_keys = new_dict.copy()
 
-    def update_history(self):
+    def update_history(self) -> None:
         """Update tweet history."""
 
         self.log.debug(f"Saving history. History is: \n{self.history}")
@@ -150,14 +159,14 @@ class BotSkeleton():
 
             jsons.append(json_item)
 
-        if not path.isfile(filename):
-            with open(filename, "a+") as f:
+        if not path.isfile(self.history_filename):
+            with open(self.history_filename, "a+") as f:
                 f.close()
 
-        with open(filename, "w") as f:
+        with open(self.history_filename, "w") as f:
             json.dump(jsons, f, default=lambda x: x.__dict__().copy())
 
-    def load_history(self):
+    def load_history(self) -> typing.List[IterationRecord]:
         """Load tweet history."""
         if path.isfile(self.history_filename):
             with open(self.history_filename, "r") as f:
@@ -205,22 +214,22 @@ class BotSkeleton():
 
 class IterationRecord:
     """Record of one iteration. Includes records of all outputs."""
-    def __init__(self, extra_keys={}):
+    def __init__(self, extra_keys: typing.Dict[str, typing.Any]={}) -> None:
         self._type = self.__class__.__name__
         self.timestamp = datetime.now().isoformat()
         self.extra_keys = extra_keys
-        self.output_records = {}
+        self.output_records: typing.Dict[str, OutputRecord] = {}
 
-    def __str__(self):
+    def __str__(self) -> str:
         """Print object."""
         return str(self.__dict__)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """repr object"""
         return str(self)
 
     @classmethod
-    def from_dict(cls, obj_dict):
+    def from_dict(cls, obj_dict: typing.Dict[str, typing.Any]) -> IterationRecord:
         """Get object back from dict."""
         obj = cls()
         for key, item in obj_dict.items():
@@ -231,15 +240,15 @@ class IterationRecord:
         return obj
 
 
-def rate_limited(max_per_hour, *args):
+def rate_limited(max_per_hour: int, *args: typing.Any) -> typing.Callable[..., typing.Any]:
     """Rate limit a function."""
     return util.rate_limited(max_per_hour, *args)
 
-def set_up_logging(log_filename):
+def set_up_logging(log_filename: str) -> Logger:
     """Set up proper logging."""
     return util.set_up_logging(log_filename=log_filename)
 
-def random_line(file_path):
+def random_line(file_path: str) -> str:
     """Get random line from file."""
     return util.random_line(file_path=file_path)
 

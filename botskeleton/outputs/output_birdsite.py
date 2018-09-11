@@ -1,5 +1,6 @@
 """Skeleton code for sending to the bad bird site."""
 import json
+import typing
 from os import path
 
 import tweepy
@@ -7,7 +8,7 @@ import tweepy
 from .output_utils import OutputRecord, OutputSkeleton
 
 class BirdsiteSkeleton(OutputSkeleton):
-    def __init__(self, secrets_dir, log):
+    def __init__(self, secrets_dir: str, log: str) -> None:
         """Set up birdsite skeleton stuff."""
         super().__init__(secrets_dir, log)
         self.name = "BIRDSITE"

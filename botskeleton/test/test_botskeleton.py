@@ -1,6 +1,7 @@
 """Tests for base botskeleton."""
 import os
 from shutil import copyfile
+from typing import Generator
 
 import pytest
 
@@ -16,14 +17,14 @@ def test_no_secrets_dir_fails() -> None:
         pass
 
 # need to test individual outputs in output_X tests, because they might need files present.
-def test_outputs_start_inactive(testdir) -> None:
+def test_outputs_start_inactive(testdir: str) -> None:
     bs = botskeleton.BotSkeleton(secrets_dir=testdir)
 
     # it would be funny to make this a mapped lambda
     for _, output in bs.outputs.items():
         assert not output["active"]
 
-def test_load_null_history(testdir) -> None:
+def test_load_null_history(testdir: str) -> None:
     name = "foobot"
     bs = botskeleton.BotSkeleton(bot_name=name, secrets_dir=testdir)
 
@@ -36,14 +37,14 @@ def test_load_null_history(testdir) -> None:
     os.remove(bs.history_filename)
     os.remove(f"{bs.history_filename}.bak")
 
-def test_load_existing_modern_history(testdir, testhist) -> None:
+def test_load_existing_modern_history(testdir: str, testhist: str) -> None:
     bs = botskeleton.BotSkeleton(secrets_dir=testdir, history_filename=testhist)
     bs.load_history()
 
     assert bs.history != []
     assert len(bs.history) == 2
 
-def test_convert_legacy_history(testdir, legacyhist, hoistedhist) -> None:
+def test_convert_legacy_history(testdir: str, legacyhist: str, hoistedhist: str) -> None:
     bs = botskeleton.BotSkeleton(secrets_dir=testdir, history_filename=legacyhist)
     bs.load_history()
 
@@ -62,25 +63,23 @@ def test_convert_legacy_history(testdir, legacyhist, hoistedhist) -> None:
             assert str(item) == str(melem.__dict__[key])
 
 
-
-
-
+#
+# @pytest.fixture(scope="function")
+# def birdsite_creds(testdir: str) -> str:
+#     directory = os.path.join(testdir, "credentials_birdsite")
+#     os.mkdir(directory)
+#     yield directory
+#     os.rmdir(directory)
+#
+# @pytest.fixture(scope="function")
+# def mastodon_creds(testdir: str) -> str:
+#     directory = os.path.join(testdir, "credentials_mastodon")
+#     os.mkdir(directory)
+#     yield directory
+#     os.rmdir(directory)
+#
 @pytest.fixture(scope="function")
-def birdsite_creds(testdir: str) -> str:
-    directory = os.path.join(testdir, "credentials_birdsite")
-    os.mkdir(directory)
-    yield directory
-    os.rmdir(directory)
-
-@pytest.fixture(scope="function")
-def mastodon_creds(testdir: str) -> str:
-    directory = os.path.join(testdir, "credentials_mastodon")
-    os.mkdir(directory)
-    yield directory
-    os.rmdir(directory)
-
-@pytest.fixture(scope="function")
-def testhist(testdir: str) -> str:
+def testhist(testdir: str) -> Generator[str, str, None]:
     hist_source = os.path.join(HERE, "test_entries.json")
     hist_file = os.path.join(testdir, "test.json")
     copyfile(hist_source, hist_file)
@@ -88,7 +87,7 @@ def testhist(testdir: str) -> str:
     os.remove(hist_file)
 
 @pytest.fixture(scope="function")
-def legacyhist(testdir: str) -> str:
+def legacyhist(testdir: str) -> Generator[str, str, None]:
     hist_source = os.path.join(HERE, "legacy_entries.json")
     hist_file = os.path.join(testdir, "legacy.json")
     copyfile(hist_source, hist_file)
@@ -96,7 +95,7 @@ def legacyhist(testdir: str) -> str:
     os.remove(hist_file)
 
 @pytest.fixture(scope="function")
-def hoistedhist(testdir: str) -> str:
+def hoistedhist(testdir: str) -> Generator[str, str, None]:
     hist_source = os.path.join(HERE, "legacy_hoisted_entries.json")
     hist_file = os.path.join(testdir, "hoisted.json")
     copyfile(hist_source, hist_file)
@@ -104,7 +103,7 @@ def hoistedhist(testdir: str) -> str:
     os.remove(hist_file)
 
 @pytest.fixture(scope="module")
-def testdir() -> str:
+def testdir() -> Generator[str, str, None]:
     directory = os.path.join(HERE, "testing_playground")
     os.mkdir(directory)
     yield directory
