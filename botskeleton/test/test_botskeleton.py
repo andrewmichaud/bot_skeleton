@@ -34,6 +34,7 @@ def test_load_null_history(testdir) -> None:
     assert bs.history == []
 
     os.remove(bs.history_filename)
+    os.remove(f"{bs.history_filename}.bak")
 
 def test_load_existing_modern_history(testdir, testhist) -> None:
     bs = botskeleton.BotSkeleton(secrets_dir=testdir, history_filename=testhist)

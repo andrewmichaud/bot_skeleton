@@ -3,6 +3,7 @@ import json
 import time
 from datetime import datetime
 from os import path
+from shutil import copyfile
 
 import drewtilities as util
 from clint.textui import progress
@@ -164,26 +165,31 @@ class BotSkeleton():
                     dicts = json.load(f)
 
                 except json.decoder.JSONDecodeError as e:
-                    self.log.error(f"Got error \n{e}\n decoding JSON history, overwriting it.")
+                    self.log.error(f"Got error \n{e}\n decoding JSON history, overwriting it.\n"
+                                   f"Former history available in {self.history_filename}.bak")
+                    copyfile(self.history_filename, f"{self.history_filename}.bak")
                     return []
 
                 history = []
                 for hdict in dicts:
-                    # Be sure to handle legacy tweetrecord-only histories.
-                    # Assume anything without our new _type (which should have been there from the
-                    # start) is a legacy history.
-                    if hasattr(hdict, "_type") and \
-                            hdict["_type"] == IterationRecord.__class__.__name__:
+                    if "_type" in hdict and \
+                            hdict["_type"] == IterationRecord.__name__:
                         history.append(IterationRecord.from_dict(hdict))
 
+                    # Be sure to handle legacy tweetrecord-only histories.
+                    # Assume anything without our new _type (which should have been there from the
+                    # start, whoops) is a legacy history.
                     else:
+                        item = IterationRecord()
+
+                        # Lift extra keys up to upper record (if they exist).
+                        extra_keys = hdict.pop("extra_keys", {})
+                        item.extra_keys = extra_keys
+
                         hdict_obj = TweetRecord.from_dict(hdict)
 
-                        item = IterationRecord()
-                        # Lift timestamp up to upper record, and extra keys.
+                        # Lift timestamp up to upper record.
                         item.timestamp = hdict_obj.timestamp
-                        if hasattr(hdict, "extra_keys"):
-                            item.extra_keys = hdict["extra_keys"]
 
                         item.output_records["birdsite"] = hdict_obj
 
@@ -216,8 +222,12 @@ class IterationRecord:
     @classmethod
     def from_dict(cls, obj_dict):
         """Get object back from dict."""
-        obj = cls.__new__(cls)
-        obj.__dict__ = obj_dict.copy()
+        obj = cls()
+        for key, item in obj_dict.items():
+            print(f"key {key} item {item}")
+            obj.__dict__[key] = item
+
+        print(f"obj {obj}")
         return obj
 
 
