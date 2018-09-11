@@ -6,13 +6,11 @@ os:
 # TODO re-add PyPy when they get >=3.5 support.
 python:
     - "3.6"
-    - "3.7"
     - "nightly"
 
 matrix:
     allow_failures:
-      - "3.7"
-      - "nightly"
+        - python: "nightly"
 
 install:
     - pip install .
