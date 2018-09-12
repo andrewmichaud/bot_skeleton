@@ -12,7 +12,34 @@ from clint.textui import progress
 
 from .outputs.output_birdsite import BirdsiteSkeleton, TweetRecord
 from .outputs.output_mastodon import MastodonSkeleton, TootRecord
-from .output_utils import OutputSkeleton, OutputRecord
+from .outputs.output_utils import OutputSkeleton, OutputRecord
+
+
+class IterationRecord:
+    """Record of one iteration. Includes records of all outputs."""
+    def __init__(self, extra_keys: typing.Dict[str, typing.Any]={}) -> None:
+        self._type = self.__class__.__name__
+        self.timestamp = datetime.now().isoformat()
+        self.extra_keys = extra_keys
+        self.output_records: typing.Dict[str, OutputRecord] = {}
+
+    def __str__(self) -> str:
+        """Print object."""
+        return str(self.__dict__)
+
+    def __repr__(self) -> str:
+        """repr object"""
+        return str(self)
+
+    @classmethod
+    def from_dict(cls, obj_dict: typing.Dict[str, typing.Any]) -> "IterationRecord":
+        """Get object back from dict."""
+        obj = cls()
+        for key, item in obj_dict.items():
+            obj.__dict__[key] = item
+
+        return obj
+
 
 class BotSkeleton():
     def __init__(self, secrets_dir:str=None, log_filename:str="log", history_filename:str=None,
@@ -61,17 +88,23 @@ class BotSkeleton():
         for key in self.outputs.keys():
             credentials_dir = path.join(self.secrets_dir, f"credentials_{key}")
             if path.isdir(credentials_dir):
-                self.outputs[key]["active"] = True
+                output_skeleton = self.outputs[key]
+                output_name = output_skeleton["obj_name"]
+
+                output_skeleton["active"] = True
+
                 # is this okay
-                self.outputs[key]["obj"] = self.outputs[key]["obj_name"](credentials_dir, self.log)
-                self.outputs[key]["obj"].bot_name = self.bot_name
+                output_skeleton["obj"] = output_name(credentials_dir, self.log)
+                output_skeleton["obj"].bot_name = self.bot_name
+
+                self.outputs[key] = output_skeleton
 
         # Special-case birdsite for historical reasons.
         key = "birdsite"
         if not self.outputs[key]["active"] and \
                 path.isfile(path.join(self.secrets_dir, "CONSUMER_KEY")):
 
-            output: OutputSkeleton = self.outputs[key]
+            output: typing.Dict[str, typing.Any] = self.outputs[key]
             output["active"] = True
             output["obj"] = self.outputs[key]["obj_name"](self.secrets_dir, self.log)
             output["obj"].bot_name = self.bot_name
@@ -110,7 +143,9 @@ class BotSkeleton():
 
         return record
 
-    def send_with_many_media(self, text: str, *filenames: typing.List[str]) -> IterationRecord:
+    def send_with_many_media(
+            self, text: str, *filenames: str
+                             ) -> IterationRecord:
         """Post with several media. Provide filenames so outputs can handle their own uploads."""
         record = IterationRecord(extra_keys=self.extra_keys)
         for key, output in self.outputs.items():
@@ -166,7 +201,7 @@ class BotSkeleton():
         with open(self.history_filename, "w") as f:
             json.dump(jsons, f, default=lambda x: x.__dict__().copy())
 
-    def load_history(self) -> typing.List[IterationRecord]:
+    def load_history(self) -> typing.List["IterationRecord"]:
         """Load tweet history."""
         if path.isfile(self.history_filename):
             with open(self.history_filename, "r") as f:
@@ -179,7 +214,7 @@ class BotSkeleton():
                     copyfile(self.history_filename, f"{self.history_filename}.bak")
                     return []
 
-                history = []
+                history: typing.List[IterationRecord] = []
                 for hdict in dicts:
                     if "_type" in hdict and \
                             hdict["_type"] == IterationRecord.__name__:
@@ -210,35 +245,6 @@ class BotSkeleton():
 
         else:
             return []
-
-
-class IterationRecord:
-    """Record of one iteration. Includes records of all outputs."""
-    def __init__(self, extra_keys: typing.Dict[str, typing.Any]={}) -> None:
-        self._type = self.__class__.__name__
-        self.timestamp = datetime.now().isoformat()
-        self.extra_keys = extra_keys
-        self.output_records: typing.Dict[str, OutputRecord] = {}
-
-    def __str__(self) -> str:
-        """Print object."""
-        return str(self.__dict__)
-
-    def __repr__(self) -> str:
-        """repr object"""
-        return str(self)
-
-    @classmethod
-    def from_dict(cls, obj_dict: typing.Dict[str, typing.Any]) -> IterationRecord:
-        """Get object back from dict."""
-        obj = cls()
-        for key, item in obj_dict.items():
-            print(f"key {key} item {item}")
-            obj.__dict__[key] = item
-
-        print(f"obj {obj}")
-        return obj
-
 
 def rate_limited(max_per_hour: int, *args: typing.Any) -> typing.Callable[..., typing.Any]:
     """Rate limit a function."""

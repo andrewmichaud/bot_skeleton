@@ -1,13 +1,15 @@
 """Skeleton code for sending to mastodon."""
 import json
+import typing
 from os import path
+from logging import Logger
 
 import mastodon
 
 from .output_utils import OutputRecord, OutputSkeleton
 
 class MastodonSkeleton(OutputSkeleton):
-    def __init__(self, secrets_dir, log):
+    def __init__(self, secrets_dir: str, log: Logger) -> None:
         """Set up mastodon skeleton stuff."""
         super().__init__(secrets_dir, log)
         self.name = "MASTODON"
@@ -31,7 +33,7 @@ class MastodonSkeleton(OutputSkeleton):
             api_base_url = INSTANCE_BASE_URL
         )
 
-    def send(self, text):
+    def send(self, text: str) -> OutputRecord:
         """Send mastodon message."""
         try:
             status = self.api.status_post(status=text)
@@ -44,12 +46,12 @@ class MastodonSkeleton(OutputSkeleton):
                  f"sending post {text} without media:\n{e}\n"),
                 e)
 
-    def send_with_one_media(self, text, filename):
+    def send_with_one_media(self, text: str, filename: str) -> OutputRecord:
         """Send mastodon message, with one media."""
-        filenames = [filename]
+        filenames = tuple(filename)
         return self.send_with_many_media(text, filenames)
 
-    def send_with_many_media(self, text, filenames):
+    def send_with_many_media(self, text: str, filenames: typing.Tuple[str, ...]) -> OutputRecord:
         """Upload media to mastodon, and send status and media."""
         media_ids = None
         try:
@@ -78,7 +80,7 @@ class MastodonSkeleton(OutputSkeleton):
     # def send_dm_sos(self, message):
     #     """Send DM to owner if something happens."""
 
-    def handle_error(self, message, e):
+    def handle_error(self, message: str, e: mastodon.MastodonError) -> OutputRecord:
         """Handle error while trying to do something."""
         self.lerror(f"Got an error! {e}")
 
@@ -96,7 +98,9 @@ class MastodonSkeleton(OutputSkeleton):
         return TootRecord(error=e)
 
 class TootRecord(OutputRecord):
-    def __init__(self, toot_id=None, text=None, filename=None, media_ids=[], error=None):
+    def __init__(self, toot_id: str=None, text: str=None, filename: str=None, media_ids:
+                 typing.List[int]=[], error: mastodon.MastodonError=None
+                 ) -> None:
         """Create toot record object."""
         super().__init__()
         self._type = self.__class__.__name__

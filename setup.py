@@ -30,7 +30,9 @@ setup(author="Andrew Michaud",
                    "Natural Language :: English",
                    "Operating System :: MacOS :: MacOS X",
                    "Operating System :: POSIX :: Linux",
+                   "Operating System :: POSIX :: BSD :: FreeBSD",
                    "Programming Language :: Python :: 3.6",
+                   "Programming Language :: Python :: 3 :: Only",
                    "Programming Language :: Python :: Implementation :: CPython",
                    "Topic :: Software Development :: Libraries"
                   ],
@@ -47,7 +49,6 @@ setup(author="Andrew Michaud",
       name="botskeleton",
 
       packages=find_packages(),
-
 
       url="https://github.com/andrewmichaud/bot_skeleton",
 
