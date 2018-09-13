@@ -13,6 +13,7 @@ class OutputSkeleton:
         self.handled_errors: typing.Dict[int, typing.Any] = {}
 
         # Output skeletons must implement these.
+        self.cred_init: typing.Callable[[str, Logger], None]
         self.send: typing.Callable[[str], OutputRecord]
         self.send_with_one_media: typing.Callable[[str, str], OutputRecord]
         self.send_with_many_media: typing.Callable[[str, typing.Tuple[str, ...]], OutputRecord]

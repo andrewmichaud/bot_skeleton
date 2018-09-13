@@ -68,13 +68,11 @@ class BotSkeleton():
         self.outputs = {
             "birdsite": {
                 "active": False,
-                "obj_name": BirdsiteSkeleton,
-                "obj": None,
+                "obj": BirdsiteSkeleton()
             },
             "mastodon": {
                 "active": False,
-                "obj_name": MastodonSkeleton,
-                "obj": None,
+                "obj": MastodonSkeleton()
             },
         }
 
@@ -87,29 +85,25 @@ class BotSkeleton():
         # credentials_ directory under our secrets dir.
         for key in self.outputs.keys():
             credentials_dir = path.join(self.secrets_dir, f"credentials_{key}")
+
+            # special-case birdsite for historical reasons.
+            if key == "birdsite" and not path.isdir(credentials_dir) \
+                    and path.isfile(path.join(self.secrets_dir, "CONSUMER_KEY")):
+                credentials_dir = self.secrets_dir
+
             if path.isdir(credentials_dir):
                 output_skeleton = self.outputs[key]
-                output_name = output_skeleton["obj_name"]
 
                 output_skeleton["active"] = True
 
-                # is this okay
-                output_skeleton["obj"] = output_name(credentials_dir, self.log)
-                output_skeleton["obj"].bot_name = self.bot_name
+                obj: typing.Any = output_skeleton["obj"]
+                obj.cred_init(credentials_dir, self.log)
+
+                obj.bot_name = self.bot_name
+
+                output_skeleton["obj"] = obj
 
                 self.outputs[key] = output_skeleton
-
-        # Special-case birdsite for historical reasons.
-        key = "birdsite"
-        if not self.outputs[key]["active"] and \
-                path.isfile(path.join(self.secrets_dir, "CONSUMER_KEY")):
-
-            output: typing.Dict[str, typing.Any] = self.outputs[key]
-            output["active"] = True
-            output["obj"] = self.outputs[key]["obj_name"](self.secrets_dir, self.log)
-            output["obj"].bot_name = self.bot_name
-
-            self.outputs[key] = output
 
     def send(self, text: str) -> IterationRecord:
         """Post, without media, to all outputs."""
@@ -118,7 +112,7 @@ class BotSkeleton():
         for key, output in self.outputs.items():
             if output["active"]:
                 self.log.info(f"Output {key} is active, sending to it.")
-                entry: OutputSkeleton = output["obj"]
+                entry: typing.Any = output["obj"]
                 output_result = entry.send(text)
                 record.output_records[key] = output_result
 
@@ -134,7 +128,7 @@ class BotSkeleton():
         """Post, with one media item, to all outputs."""
         record = IterationRecord(extra_keys=self.extra_keys)
         for key, output in self.outputs.items():
-            entry: OutputSkeleton = output["obj"]
+            entry: typing.Any = output["obj"]
             output_result = entry.send_with_one_media(text, filename)
             record.output_records[key] = output_result
 
@@ -149,7 +143,7 @@ class BotSkeleton():
         """Post with several media. Provide filenames so outputs can handle their own uploads."""
         record = IterationRecord(extra_keys=self.extra_keys)
         for key, output in self.outputs.items():
-            entry: OutputSkeleton = output["obj"]
+            entry: typing.Any = output["obj"]
             output_result = entry.send_with_many_media(text, filenames)
             record.output_records[key] = output_result
 

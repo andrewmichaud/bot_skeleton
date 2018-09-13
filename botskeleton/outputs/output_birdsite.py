@@ -10,14 +10,17 @@ from .output_utils import OutputRecord, OutputSkeleton
 
 
 class BirdsiteSkeleton(OutputSkeleton):
-    def __init__(self, secrets_dir: str, log: Logger) -> None:
+    def __init__(self) -> None:
         """Set up birdsite skeleton stuff."""
-        super().__init__(secrets_dir, log)
         self.name = "BIRDSITE"
 
         self.handled_errors = {
             187: self.default_duplicate_handler,
         }
+
+    def cred_init(self, secrets_dir: str, log: Logger) -> None:
+        """Initialize what requires credentials/secret files."""
+        super().__init__(secrets_dir, log)
 
         self.ldebug("Retrieving CONSUMER_KEY...")
         with open(path.join(self.secrets_dir, "CONSUMER_KEY")) as f:

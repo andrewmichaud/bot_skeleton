@@ -9,10 +9,13 @@ import mastodon
 from .output_utils import OutputRecord, OutputSkeleton
 
 class MastodonSkeleton(OutputSkeleton):
-    def __init__(self, secrets_dir: str, log: Logger) -> None:
+    def __init__(self) -> None:
         """Set up mastodon skeleton stuff."""
-        super().__init__(secrets_dir, log)
         self.name = "MASTODON"
+
+    def cred_init(self, secrets_dir: str, log: Logger) -> None:
+        """Initialize what requires credentials/secret files."""
+        super().__init__(secrets_dir, log)
 
         self.ldebug("Retrieving ACCESS_TOKEN ...")
         with open(path.join(self.secrets_dir, "ACCESS_TOKEN")) as f:
