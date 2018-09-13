@@ -8,6 +8,7 @@ import pytest
 import botskeleton
 
 HERE = os.path.abspath(os.path.dirname(__file__))
+JSON = os.path.join(HERE, "json")
 
 def test_no_secrets_dir_fails() -> None:
     try:
@@ -80,7 +81,7 @@ def test_convert_legacy_history(testdir: str, legacyhist: str, hoistedhist: str)
 #
 @pytest.fixture(scope="function")
 def testhist(testdir: str) -> Generator[str, str, None]:
-    hist_source = os.path.join(HERE, "test_entries.json")
+    hist_source = os.path.join(JSON, "test_entries.json")
     hist_file = os.path.join(testdir, "test.json")
     copyfile(hist_source, hist_file)
     yield hist_file
@@ -88,7 +89,7 @@ def testhist(testdir: str) -> Generator[str, str, None]:
 
 @pytest.fixture(scope="function")
 def legacyhist(testdir: str) -> Generator[str, str, None]:
-    hist_source = os.path.join(HERE, "legacy_entries.json")
+    hist_source = os.path.join(JSON, "legacy_entries.json")
     hist_file = os.path.join(testdir, "legacy.json")
     copyfile(hist_source, hist_file)
     yield hist_file
@@ -96,7 +97,7 @@ def legacyhist(testdir: str) -> Generator[str, str, None]:
 
 @pytest.fixture(scope="function")
 def hoistedhist(testdir: str) -> Generator[str, str, None]:
-    hist_source = os.path.join(HERE, "legacy_hoisted_entries.json")
+    hist_source = os.path.join(JSON, "legacy_hoisted_entries.json")
     hist_file = os.path.join(testdir, "hoisted.json")
     copyfile(hist_source, hist_file)
     yield hist_file

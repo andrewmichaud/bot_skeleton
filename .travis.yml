@@ -24,7 +24,7 @@ script:
       --ignore-missing-imports --follow-imports=skip \
       --disallow-untyped-defs --incremental --warn-no-return --show-column-numbers
 
-    - coverage run --source=botskeleton setup.py test
+    - coverage run --source=botskeleton setup.py pytest
     - coverage report -m
 
 after_success:
