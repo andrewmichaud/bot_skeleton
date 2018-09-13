@@ -45,7 +45,7 @@ class BirdsiteSkeleton(OutputSkeleton):
                 self.owner_handle = f.read().strip()
         else:
             self.ldebug("Couldn't find OWNER_HANDLE, unable to DM...")
-            self.owner_handle = None
+            self.owner_handle = ""
 
         self.auth = tweepy.OAuthHandler(CONSUMER_KEY, CONSUMER_SECRET)
         self.auth.set_access_token(ACCESS_TOKEN, ACCESS_SECRET)
@@ -105,7 +105,7 @@ class BirdsiteSkeleton(OutputSkeleton):
 
     def send_dm_sos(self, message: str) -> None:
         """Send DM to owner if something happens."""
-        if self.owner_handle is not None:
+        if self.owner_handle:
             try:
                 self.api.send_direct_message(user=self.owner_handle, text=message)
 
