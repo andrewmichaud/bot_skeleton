@@ -193,7 +193,8 @@ class BotSkeleton():
                 f.close()
 
         with open(self.history_filename, "w") as f:
-            json.dump(jsons, f, default=lambda x: x.__dict__().copy())
+            json.dump(jsons, f, default=lambda x: x.__dict__().copy(), sort_keys=True, indent=4)
+            f.write("\n") # add trailing new line dump skips.
 
     def load_history(self) -> typing.List["IterationRecord"]:
         """Load tweet history."""
@@ -209,7 +210,11 @@ class BotSkeleton():
                     return []
 
                 history: typing.List[IterationRecord] = []
-                for hdict in dicts:
+                for hdict_pre in dicts:
+
+                    # repair any corrupted entries
+                    hdict = repair(hdict_pre)
+
                     if "_type" in hdict and \
                             hdict["_type"] == IterationRecord.__name__:
                         history.append(IterationRecord.from_dict(hdict))
@@ -251,6 +256,27 @@ def set_up_logging(log_filename: str) -> Logger:
 def random_line(file_path: str) -> str:
     """Get random line from file."""
     return util.random_line(file_path=file_path)
+
+def repair(record: typing.Dict[str, typing.Any]) -> typing.Dict[str, typing.Any]:
+    """Repair a corrupted IterationRecord."""
+    output_records = record.get("output_records")
+    if record.get("_type") == "IterationRecord" and output_records is not None:
+        birdsite_record = output_records.get("birdsite")
+
+        # check for the bug
+        if birdsite_record.get("_type") == "IterationRecord":
+
+            # get to the bottom of the corrupted record
+            while birdsite_record.get("_type") == "IterationRecord":
+                sub_record = birdsite_record.get("output_records")
+                birdsite_record = sub_record.get("birdsite")
+
+            output_records["birdsite"] = birdsite_record
+
+        # pull that correct record up to the top level, fixing corruption
+        record["output_records"] = output_records
+
+    return record
 
 class BotSkeletonException(Exception):
     """

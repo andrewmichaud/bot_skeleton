@@ -26,14 +26,14 @@ class MastodonSkeleton(OutputSkeleton):
         instance_base_url_path = path.join(self.secrets_dir, "INSTANCE_BASE_URL")
         if path.isfile(instance_base_url_path):
             with open(instance_base_url_path) as f:
-                INSTANCE_BASE_URL = f.read().strip()
+                self.instance_base_url = f.read().strip()
         else:
             self.ldebug("Couldn't find INSTANCE_BASE_URL, defaulting to mastodon.social.")
-            INSTANCE_BASE_URL = "https://mastodon.social"
+            self.instance_base_url = "https://mastodon.social"
 
         self.api = mastodon.Mastodon(
             access_token = ACCESS_TOKEN,
-            api_base_url = INSTANCE_BASE_URL
+            api_base_url = self.instance_base_url
         )
 
     def send(self, text: str) -> OutputRecord:

@@ -112,6 +112,8 @@
                 }
             }
         }
+    },
+    {
         "_type": "IterationRecord",
         "timestamp": "2018-09-13T06:36:23.412251",
         "extra_keys": {},
