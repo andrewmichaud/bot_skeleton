@@ -1,0 +1,31 @@
+language: python
+
+os:
+    - linux
+
+# TODO re-add PyPy when they get >=3.5 support.
+python:
+    - "3.6"
+    - "nightly"
+
+matrix:
+    allow_failures:
+        - python: "nightly"
+
+install:
+    - pip install .
+    - pip install coveralls
+    - pip install -U git+git://github.com/python/mypy.git
+
+script:
+    - |
+      mypy \
+      botskeleton \
+      --ignore-missing-imports --follow-imports=skip \
+      --disallow-untyped-defs --incremental --warn-no-return --show-column-numbers
+
+    - coverage run --source=botskeleton setup.py pytest
+    - coverage report -m
+
+after_success:
+    - coveralls
