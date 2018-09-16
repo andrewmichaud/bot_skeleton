@@ -1,21 +1,16 @@
 """Skeleton code for sending to mastodon."""
 import json
-import typing
 from os import path
-from logging import Logger
 
 import mastodon
 
 from .output_utils import OutputRecord, OutputSkeleton
 
 class MastodonSkeleton(OutputSkeleton):
-    def __init__(self) -> None:
+    def __init__(self, secrets_dir, log):
         """Set up mastodon skeleton stuff."""
-        self.name = "MASTODON"
-
-    def cred_init(self, secrets_dir: str, log: Logger) -> None:
-        """Initialize what requires credentials/secret files."""
         super().__init__(secrets_dir, log)
+        self.name = "MASTODON"
 
         self.ldebug("Retrieving ACCESS_TOKEN ...")
         with open(path.join(self.secrets_dir, "ACCESS_TOKEN")) as f:
@@ -26,17 +21,17 @@ class MastodonSkeleton(OutputSkeleton):
         instance_base_url_path = path.join(self.secrets_dir, "INSTANCE_BASE_URL")
         if path.isfile(instance_base_url_path):
             with open(instance_base_url_path) as f:
-                self.instance_base_url = f.read().strip()
+                INSTANCE_BASE_URL = f.read().strip()
         else:
             self.ldebug("Couldn't find INSTANCE_BASE_URL, defaulting to mastodon.social.")
-            self.instance_base_url = "https://mastodon.social"
+            INSTANCE_BASE_URL = "https://mastodon.social"
 
         self.api = mastodon.Mastodon(
             access_token = ACCESS_TOKEN,
-            api_base_url = self.instance_base_url
+            api_base_url = INSTANCE_BASE_URL
         )
 
-    def send(self, text: str) -> OutputRecord:
+    def send(self, text):
         """Send mastodon message."""
         try:
             status = self.api.status_post(status=text)
@@ -49,12 +44,12 @@ class MastodonSkeleton(OutputSkeleton):
                  f"sending post {text} without media:\n{e}\n"),
                 e)
 
-    def send_with_one_media(self, text: str, filename: str) -> OutputRecord:
+    def send_with_one_media(self, text, filename):
         """Send mastodon message, with one media."""
-        filenames = tuple(filename)
+        filenames = [filename]
         return self.send_with_many_media(text, filenames)
 
-    def send_with_many_media(self, text: str, filenames: typing.Tuple[str, ...]) -> OutputRecord:
+    def send_with_many_media(self, text, filenames):
         """Upload media to mastodon, and send status and media."""
         media_ids = None
         try:
@@ -83,7 +78,7 @@ class MastodonSkeleton(OutputSkeleton):
     # def send_dm_sos(self, message):
     #     """Send DM to owner if something happens."""
 
-    def handle_error(self, message: str, e: mastodon.MastodonError) -> OutputRecord:
+    def handle_error(self, message, e):
         """Handle error while trying to do something."""
         self.lerror(f"Got an error! {e}")
 
@@ -101,9 +96,7 @@ class MastodonSkeleton(OutputSkeleton):
         return TootRecord(error=e)
 
 class TootRecord(OutputRecord):
-    def __init__(self, toot_id: str=None, text: str=None, filename: str=None, media_ids:
-                 typing.List[int]=[], error: mastodon.MastodonError=None
-                 ) -> None:
+    def __init__(self, toot_id=None, text=None, filename=None, media_ids=[], error=None):
         """Create toot record object."""
         super().__init__()
         self._type = self.__class__.__name__

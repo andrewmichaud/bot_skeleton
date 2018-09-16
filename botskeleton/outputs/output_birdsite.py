@@ -1,26 +1,20 @@
 """Skeleton code for sending to the bad bird site."""
 import json
-import typing
 from os import path
-from logging import Logger
 
 import tweepy
 
 from .output_utils import OutputRecord, OutputSkeleton
 
-
 class BirdsiteSkeleton(OutputSkeleton):
-    def __init__(self) -> None:
+    def __init__(self, secrets_dir, log):
         """Set up birdsite skeleton stuff."""
+        super().__init__(secrets_dir, log)
         self.name = "BIRDSITE"
 
         self.handled_errors = {
             187: self.default_duplicate_handler,
         }
-
-    def cred_init(self, secrets_dir: str, log: Logger) -> None:
-        """Initialize what requires credentials/secret files."""
-        super().__init__(secrets_dir, log)
 
         self.ldebug("Retrieving CONSUMER_KEY...")
         with open(path.join(self.secrets_dir, "CONSUMER_KEY")) as f:
@@ -45,14 +39,14 @@ class BirdsiteSkeleton(OutputSkeleton):
                 self.owner_handle = f.read().strip()
         else:
             self.ldebug("Couldn't find OWNER_HANDLE, unable to DM...")
-            self.owner_handle = ""
+            self.owner_handle = None
 
         self.auth = tweepy.OAuthHandler(CONSUMER_KEY, CONSUMER_SECRET)
         self.auth.set_access_token(ACCESS_TOKEN, ACCESS_SECRET)
 
         self.api = tweepy.API(self.auth)
 
-    def send(self, text: str) -> OutputRecord:
+    def send(self, text):
         """Send birdsite message."""
         try:
             status = self.api.update_status(text)
@@ -65,7 +59,7 @@ class BirdsiteSkeleton(OutputSkeleton):
                  f"sending post {text} without media:\n{e}\n"),
                 e)
 
-    def send_with_one_media(self, text: str, filename: str) -> OutputRecord:
+    def send_with_one_media(self, text, filename):
         """Send birdsite message, with one media."""
         try:
             status = self.api.update_with_media(filename, status=text)
@@ -79,7 +73,7 @@ class BirdsiteSkeleton(OutputSkeleton):
                  f"sending post {text} with filename {filename}:\n{e}\n"),
                 e)
 
-    def send_with_many_media(self, text: str, filenames: typing.Tuple[str, ...]) -> OutputRecord:
+    def send_with_many_media(self, text, filenames):
         """Upload media to birdsite, and send status and media."""
 
         media_ids = None
@@ -87,7 +81,7 @@ class BirdsiteSkeleton(OutputSkeleton):
             self.ldebug(f"Uploading filenames {filenames}.")
             media_ids = [self.api.media_upload(filename).media_id_string for filename in filenames]
         except tweepy.TweepError as e:
-            return self.handle_error(
+            return handle_error(
                 f"Bot {self.bot_name} encountered an error when uploading {filenames}:\n{e}\n",
                 e)
 
@@ -98,16 +92,16 @@ class BirdsiteSkeleton(OutputSkeleton):
                                              media_ids=media_ids)
 
         except tweepy.TweepError as e:
-            return self.handle_error(
+            return handle_error(
                 (f"Bot {self.bot_name} encountered an error when "
                  f"sending post {text} with media ids {media_ids}:\n{e}\n"),
                 e)
 
-    def send_dm_sos(self, message: str) -> None:
+    def send_dm_sos(self, message):
         """Send DM to owner if something happens."""
-        if self.owner_handle:
+        if self.owner_handle is not None:
             try:
-                self.api.send_direct_message(user=self.owner_handle, text=message)
+                _ = self.api.send_direct_message(user=self.owner_handle, text=message)
 
             except tweepy.TweepError as de:
                 self.lerror(f"Error trying to send DM about error!: {de}")
@@ -115,7 +109,7 @@ class BirdsiteSkeleton(OutputSkeleton):
         else:
             self.lerror("Can't send DM SOS, no owner handle.")
 
-    def handle_error(self, message: str, e: tweepy.TweepError) -> OutputRecord:
+    def handle_error(self, message, e):
         """Handle error while trying to do something."""
         self.lerror(f"Got an error! {e}")
 
@@ -133,9 +127,7 @@ class BirdsiteSkeleton(OutputSkeleton):
         return TweetRecord(error=e)
 
 class TweetRecord(OutputRecord):
-    def __init__(self, tweet_id: str=None, text: str=None, filename: str=None, media_ids:
-                 typing.List[str]=[], error: tweepy.TweepError=None
-                 ) -> None:
+    def __init__(self, tweet_id=None, text=None, filename=None, media_ids=[], error=None):
         """Create tweet record object."""
         super().__init__()
         self._type = self.__class__.__name__
