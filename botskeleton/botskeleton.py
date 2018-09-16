@@ -282,7 +282,8 @@ def repair(record: typing.Dict[str, typing.Any]) -> typing.Dict[str, typing.Any]
 
             record["extra_keys"] = record_extra_values
 
-            del birdsite_record["extra_keys"]
+            if "extra_keys" in birdsite_record:
+                del birdsite_record["extra_keys"]
 
             output_records["birdsite"] = birdsite_record
 
