@@ -276,7 +276,7 @@ def repair(record: typing.Dict[str, typing.Any]) -> typing.Dict[str, typing.Any]
 
             # Lift extra keys, just in case.
             record_extra_values = record.get("extra_keys", {})
-            for key, value in birdsite_record["extra_keys"]:
+            for key, value in birdsite_record.get("extra_keys", {}):
                 if key not in record_extra_values:
                     record_extra_values[key] = value
 
