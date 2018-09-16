@@ -1,3 +1,14 @@
+3.1.0 (???):
+Various
+* BUGFIXES
+    * Fix history corruption bug that led to nested "output_records".
+
+* DEV
+    * Unit testing/CI set up. Basic unit tests for built-in outputs and history handling.
+    * Test added for the fixed history bug.
+    * Test added for legacy history conversion, which was kind of just implemented in the previous
+      version, without testing.
+
 3.0.2 (2018-08-30):
 Multi-output bugfixes
 * BREAKING CHANGES
