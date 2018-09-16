@@ -17,6 +17,9 @@ TESTS_REQUIRE = ["coveralls>=1.5.0, <2.0.0",
 SETUP_REQUIRES = ["pytest-runner"
                   ]
 
+with open(path.join(HERE, "README.rst")) as f:
+    LONG_DESCRIPTION = f.read().strip()
+
 with open(path.join(HERE, "VERSION"), encoding="utf-8") as f:
     VERSION = f.read().strip()
 
@@ -49,6 +52,9 @@ setup(author="Andrew Michaud",
       name="botskeleton",
 
       packages=find_packages(),
+      
+      description="A skeleton for content bots."
+      long_description=LONG_DESCRIPTION
 
       url="https://github.com/andrewmichaud/bot_skeleton",
 
