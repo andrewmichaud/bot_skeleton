@@ -34,7 +34,123 @@ Multi-output
     * Add support for Mastodon.
     * Change record formatting to multi-output site, convert old records in-place.
 
-2.0.5 (2018-05-22):
+NOTE: entries beyond this point are backfilled. They should be relatively accurate, but won't be
+exact.
+
+2.1.0 (not actually tagged)
+Error handling
+* DEV/BUGFIXES
+    * add framework for handling errors
+    * call error handler for errors
+    * will call out to dm_sos if it can't handle the error
+    * add default handler for birdsite's duplicate tweet error, which bots hit a lot
+
+2.0.5 (also 2.0.3-2.0.4) (2018-05-22):
 Bugfixes
-    * BUGFIXES
-        * Dump errors from birdsite as text, so json dumping works easily.
+* DEV/BUGFIXES
+    * pass over errors a few more times to make them store correctly and not crash the program
+    * JSON-dump their dict when creating the TweetRecord
+    * also do some type-checking when trying to assume things about error structure
+
+2.0.2 (2018-04-18):
+DREWTILITIES
+* DEV/BUGFIX
+    * we expect errors to be objects, so just pass the whole object in TweetRecords
+
+2.0.2 (2018-04-18):
+DREWTILITIES
+* DEV/BUGFIX
+    * we expect errors to be objects, so just pass the whole object in TweetRecords
+
+2.0.1 (2018-01-02):
+DREWTILITIES
+* DEV/BUGFIX
+    * errors can't be indexed, just stringify them when storing in TweetRecords
+
+2.0.0 (2017-12-14):
+DREWTILITIES
+* DEV
+    * use drewtilities package (same author) for random_line, log setup, rate limiting
+    * remove those methods from this package
+    * store log object on botskeleton object
+    * store error records when errors happen
+    * upload_media should also store history items
+    * TweepErrors are a supertype of tweepy.RateLimitError, so we don't have to catch both
+    * remove some unused variables
+    * try to save whole error in TweetRecord
+
+1.2.2 (2017-11-16):
+README change
+* DEV/BUGFIX
+    * Also forgot that the call is math.ceil, not math.ceiling.
+
+1.2.1 (2017-11-16):
+README change
+* DEV/BUGFIX
+    * Forgot to import math in last commit, which is needed.
+
+1.2.0 (2017-11-09):
+README change
+* FEATURE
+    * Show clint progress bars on sleeps.
+    * Show progress on imported rate_limited calls.
+
+* DEV
+    * Make README an RST file, which PyPI likes more, and GitHub is fine with.
+
+1.1.0 (2017-11-03):
+Bugfixes
+* FEATURE
+    * Add a history feature. TweetRecord objects store tweet id, tweet text, filename, and some
+      extra keys (if the caller has them).
+    * History updated on every send-type call, and saved/loaded from disk.
+    * send_with_media will save media_ids as well.
+    * History items will generate and store timestamps.
+    * Also add a nap function to sleep for some time. Based on delay passed into constructor.
+    * Caller can call to sleep between send calls.
+
+* DEV
+    * Just import path from os so we don't have to do os.path one million times.
+
+1.0.5 (2017-10-26):
+Bugfixes
+* BUGFIXES
+    * Didn't pass owner_handle to send_direct_message correctly, so that didn't work. Fix that.
+    * Fix a typo'd call to send_dm_sos.
+    * Fix some missing spaces in send_dm_sos calls.
+    * Actual API send_direct_message needs user/text params - call that correctly.
+
+1.0.4 (2017-10-26):
+random_line, some 3.6 passes
+* FEATURES
+    * Add random_line function, and expose that.
+    * Add send_with_one_media to send text and one image.
+    * Expose set_up_logging to callers.
+
+* DEV
+    * Use python3.6 format strings, everywhere.
+
+1.0.3 (2017-10-24):
+catch rate limit errors
+* BUGFIXES:
+    * Tweepy throws RateLimitErrors separate from TweepErrors. Catch both separately in API calls.
+
+1.0.2 (2017-10-24):
+secrets_dir bugfixes
+* BUGFIXES:
+    * SECRETS_DIR was not specified correctly - it ended up wherever the library was on disk.
+      Update so it must be provided to the skeleton. This allows caller to put it wherever they
+      want, useful for when you're using bots in production.
+
+1.0.1 (2017-10-24):
+initial bugfixes
+* BUGFIXES:
+    * Added __init__.py in botskeleton so bots can import it correctly.
+    * Fixed class name for proper new-style class.
+    * Fixed name in setup.py and specified python_requires correctly.
+
+1.0.0 (2017-10-24):
+Initial release
+* Features
+    * Basic bot library ripped from shared code from #NaBoMaMo 2016 bots.
+    * basic repo stuff like LICENSE, setup.py
