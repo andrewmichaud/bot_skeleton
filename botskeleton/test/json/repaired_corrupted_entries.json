@@ -1,7 +1,6 @@
 [
     {
         "_type": "IterationRecord",
-        "timestamp": "2018-05-18T11:57:31.939980",
         "extra_keys": {},
         "output_records": {
             "birdsite": {
@@ -10,13 +9,13 @@
                 "text": "notmuch nice ed ; what history number scrot ; whereis gold diff awk grog ; whereis gold date",
                 "filename": null,
                 "media_ids": [],
-                "extra_keys": {}
+                "_type": "TweetRecord"
             }
-        }
+        },
+        "timestamp": "2018-05-18T11:57:31.939980"
     },
     {
         "_type": "IterationRecord",
-        "timestamp": "2018-05-18T14:03:43.173348",
         "extra_keys": {},
         "output_records": {
             "birdsite": {
@@ -25,14 +24,13 @@
                 "text": "whatis nice ex net ; notmuch yes yes ; what diff nice gold net ; yes bye ssh",
                 "filename": null,
                 "media_ids": [],
-                "extra_keys": {}
+                "_type": "TweetRecord"
             }
-        }
-
+        },
+        "timestamp": "2018-05-18T14:03:43.173348"
     },
     {
         "_type": "IterationRecord",
-        "timestamp": "2018-09-13T06:36:23.412251",
         "extra_keys": {},
         "output_records": {
             "birdsite": {
@@ -51,11 +49,11 @@
                 "filename": null,
                 "media_ids": []
             }
-        }
+        },
+        "timestamp": "2018-09-13T06:36:23.412251"
     },
     {
         "_type": "IterationRecord",
-        "timestamp": "2018-09-13T08:42:10.713703",
         "extra_keys": {},
         "output_records": {
             "birdsite": {
@@ -74,6 +72,7 @@
                 "filename": null,
                 "media_ids": []
             }
-        }
+        },
+        "timestamp": "2018-09-13T08:42:10.713703"
     }
 ]

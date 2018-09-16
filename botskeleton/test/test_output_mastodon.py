@@ -8,14 +8,15 @@ import botskeleton
 
 HERE = os.path.abspath(os.path.dirname(__file__))
 
-def test_mastodon_activates_correctly(testdir: str, credentials: str) -> None:
-    bs = botskeleton.BotSkeleton(secrets_dir=testdir)
+def test_mastodon_activates_correctly(testdir: str, credentials: str, log: str) -> None:
+    bs = botskeleton.BotSkeleton(secrets_dir=testdir, log_filename=log)
 
     assert(bs.outputs["mastodon"]["active"])
 
-def test_mastodon_activates_with_instance_id_correctly(testdir: str, credentials: str) -> None:
+def test_mastodon_activates_with_instance_id_correctly(testdir: str, credentials: str, log: str
+                                                       ) -> None:
     # no instance set
-    bs = botskeleton.BotSkeleton(secrets_dir=testdir)
+    bs = botskeleton.BotSkeleton(secrets_dir=testdir, log_filename=log)
 
     assert(bs.outputs["mastodon"]["active"])
     mastodon_obj: Any = bs.outputs["mastodon"]["obj"]
@@ -26,7 +27,7 @@ def test_mastodon_activates_with_instance_id_correctly(testdir: str, credentials
     with open(TESTFILE, "w") as f:
         f.write(TESTSTR)
 
-    bs = botskeleton.BotSkeleton(secrets_dir=testdir)
+    bs = botskeleton.BotSkeleton(secrets_dir=testdir, log_filename=log)
 
     assert(bs.outputs["mastodon"]["active"])
     mastodon_obj = bs.outputs["mastodon"]["obj"]
@@ -51,7 +52,16 @@ def credentials(testdir: str) -> Generator[str, str, None]:
 
     os.rmdir(credentials_mastodon)
 
-@pytest.fixture(scope="function")
+
+@pytest.fixture(scope="module")
+def log(testdir: str) -> Generator[str, str, None]:
+    log = os.path.join(testdir, "log")
+    open(log, "a").close()
+    yield log
+    os.remove(log)
+
+
+@pytest.fixture(scope="module")
 def testdir() -> Generator[str, str, None]:
     directory = os.path.join(HERE, "testing_playground")
     os.mkdir(directory)

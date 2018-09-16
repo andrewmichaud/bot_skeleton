@@ -11,26 +11,25 @@ HERE = os.path.abspath(os.path.dirname(__file__))
 JSON = os.path.join(HERE, "json")
 
 
-def test_no_secrets_dir_fails() -> None:
+def test_no_secrets_dir_fails(log: str) -> None:
     try:
-        bs = botskeleton.BotSkeleton()
+        bs = botskeleton.BotSkeleton(log_filename=log)
         pytest.fail("Should throw exception for no secrets dir.")
     except botskeleton.BotSkeletonException as e:
         pass
 
 
-# need to test individual outputs in output_X tests, because they might need files present.
-def test_outputs_start_inactive(testdir: str) -> None:
-    bs = botskeleton.BotSkeleton(secrets_dir=testdir)
+def test_outputs_start_inactive(testdir: str, log: str) -> None:
+    bs = botskeleton.BotSkeleton(secrets_dir=testdir, log_filename=log)
 
     # it would be funny to make this a mapped lambda
     for _, output in bs.outputs.items():
         assert not output["active"]
 
 
-def test_load_null_history(testdir: str) -> None:
+def test_load_null_history(testdir: str, log: str) -> None:
     name = "foobot"
-    bs = botskeleton.BotSkeleton(bot_name=name, secrets_dir=testdir)
+    bs = botskeleton.BotSkeleton(bot_name=name, secrets_dir=testdir, log_filename=log)
 
     assert bs.history == []
 
@@ -42,42 +41,45 @@ def test_load_null_history(testdir: str) -> None:
     os.remove(f"{bs.history_filename}.bak")
 
 
-def test_load_existing_modern_history(testdir: str, testhist: str) -> None:
-    bs = botskeleton.BotSkeleton(secrets_dir=testdir, history_filename=testhist)
+def test_load_existing_modern_history(testdir: str, testhist: str, log: str) -> None:
+    bs = botskeleton.BotSkeleton(secrets_dir=testdir, history_filename=testhist, log_filename=log)
     bs.load_history()
 
     assert bs.history != []
     assert len(bs.history) == 2
 
 
-def test_convert_legacy_history(testdir: str, legacyhist: str, hoistedhist: str) -> None:
-    bs = botskeleton.BotSkeleton(secrets_dir=testdir, history_filename=legacyhist)
+def test_convert_legacy_history(testdir: str, legacyhist: str, hoistedhist: str, log: str) -> None:
+    bs = botskeleton.BotSkeleton(secrets_dir=testdir, history_filename=legacyhist,
+                                 log_filename=log)
     bs.load_history()
 
     assert bs.history != []
 
-    # compare against testdir - they should be the same in structure if not content.
-    mbs = botskeleton.BotSkeleton(secrets_dir=testdir, history_filename=hoistedhist)
+    mbs = botskeleton.BotSkeleton(secrets_dir=testdir, history_filename=hoistedhist,
+                                  log_filename=log)
     mbs.load_history()
 
     assert len(bs.history) == len(mbs.history)
     for i, elem in enumerate(bs.history):
         melem = mbs.history[i]
         for key, item in elem.__dict__.items():
-            print(f"item: {str(item)}\nitem {str(melem.__dict__[key])}")
             assert str(item) == str(melem.__dict__[key])
 
 
 # regression test for the history corruption snafu.
-def test_repair_corrupted_history(testdir: str, corruptedhist: str, repairedcorruptedhist: str
+def test_repair_corrupted_history(testdir: str, corruptedhist: str, repairedcorruptedhist: str,
+                                  log: str
                                   ) -> None:
-    bs = botskeleton.BotSkeleton(secrets_dir=testdir, history_filename=corruptedhist)
+    bs = botskeleton.BotSkeleton(secrets_dir=testdir, history_filename=corruptedhist,
+                                 log_filename=log)
     bs.load_history()
 
     assert bs.history != []
 
     # compare against repairedhist. they should be identical.
-    mbs = botskeleton.BotSkeleton(secrets_dir=testdir, history_filename=repairedcorruptedhist)
+    mbs = botskeleton.BotSkeleton(secrets_dir=testdir, history_filename=repairedcorruptedhist,
+                                  log_filename=log)
     mbs.load_history()
 
     assert mbs.history != []
@@ -90,8 +92,8 @@ def test_repair_corrupted_history(testdir: str, corruptedhist: str, repairedcorr
             assert str(item) == str(melem.__dict__[key])
 
 
-def test_idempotency(testdir: str, testhist: str) -> None:
-    bs = botskeleton.BotSkeleton(secrets_dir=testdir, history_filename=testhist)
+def test_idempotency(testdir: str, testhist: str, log: str) -> None:
+    bs = botskeleton.BotSkeleton(secrets_dir=testdir, history_filename=testhist, log_filename=log)
     bs.load_history()
     bs.update_history()
 
@@ -106,14 +108,6 @@ def test_idempotency(testdir: str, testhist: str) -> None:
 
     if not identical:
         pytest.fail("Test history changed when it shouldn't have been.")
-
-
-# @pytest.fixture(scope="function")
-# def mastodon_creds(testdir: str) -> str:
-#     directory = os.path.join(testdir, "credentials_mastodon")
-#     os.mkdir(directory)
-#     yield directory
-#     os.rmdir(directory)
 
 
 @pytest.fixture(scope="function")
@@ -159,6 +153,14 @@ def repairedcorruptedhist(testdir: str) -> Generator[str, str, None]:
     copyfile(hist_source, hist_file)
     yield hist_file
     os.remove(hist_file)
+
+
+@pytest.fixture(scope="module")
+def log(testdir: str) -> Generator[str, str, None]:
+    log = os.path.join(testdir, "log")
+    open(log, "a").close()
+    yield log
+    os.remove(log)
 
 
 @pytest.fixture(scope="module")

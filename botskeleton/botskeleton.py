@@ -271,6 +271,19 @@ def repair(record: typing.Dict[str, typing.Any]) -> typing.Dict[str, typing.Any]
                 sub_record = birdsite_record.get("output_records")
                 birdsite_record = sub_record.get("birdsite")
 
+            # add type
+            birdsite_record["_type"] = TweetRecord.__name__
+
+            # Lift extra keys, just in case.
+            record_extra_values = record.get("extra_keys", {})
+            for key, value in birdsite_record["extra_keys"]:
+                if key not in record_extra_values:
+                    record_extra_values[key] = value
+
+            record["extra_keys"] = record_extra_values
+
+            del birdsite_record["extra_keys"]
+
             output_records["birdsite"] = birdsite_record
 
         # pull that correct record up to the top level, fixing corruption
