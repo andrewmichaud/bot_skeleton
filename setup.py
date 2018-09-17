@@ -52,9 +52,9 @@ setup(author="Andrew Michaud",
       name="botskeleton",
 
       packages=find_packages(),
-      
-      description="A skeleton for content bots."
-      long_description=LONG_DESCRIPTION
+
+      description="A skeleton for content bots.",
+      long_description=LONG_DESCRIPTION,
 
       url="https://github.com/andrewmichaud/bot_skeleton",
 
