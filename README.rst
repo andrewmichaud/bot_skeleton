@@ -37,8 +37,11 @@ Created by Andrew Michaud ahead of #NaBoMaMo 2017
 long
 ====
 botskeleton is a framework for content bots,
-like `Twitter bots <https://twitter.com/nonogram_bot/status/1042453809945993216>`
-and `Mastodon bots <https://botsin.space/@tree_bot>`.
+like `Twitter bots`_
+and `Mastodon bots`_
+
+.. _Twitter bots: https://twitter.com/nonogram_bot/status/1042453809945993216
+.. _Mastodon bots: https://botsin.space/@tree_bot
 
 ==========
 Public API
@@ -271,15 +274,17 @@ Credentials directory is  :code:`SECRETS_DIR/output_birdsite`.
 This output expects the following files to be present,
 with proper contents.
 Creating birdsite accounts and getting keys is beyond the scope of this document.
-:code:`CONSUMER_KEY`
-:code:`CONSUMER_SECRET`
-:code:`ACCESS_TOKEN`
-:code:`ACCESS_SECRET`
+
+* :code:`CONSUMER_KEY`
+* :code:`CONSUMER_SECRET`
+* :code:`ACCESS_TOKEN`
+* :code:`ACCESS_SECRET`
 
 Optionally,
 this file can be provided.
 This is used to send DMs when errors are encountered.
-:code:`OWNER_HANDLE`
+
+* :code:`OWNER_HANDLE`
 
 ----------------------------------
 :code:`outputs/output_mastodon.py`
@@ -288,7 +293,8 @@ Credentials directory is  :code:`SECRETS_DIR/output_mastodon`.
 This output expects the following files to be present,
 with proper contents.
 Creating mastodon bot accounts and getting keys is beyond the scope of this document.
-:code:`ACCESS_TOKEN`
+
+* :code:`ACCESS_TOKEN`
 
 Optionally,
 this file can be provided.
@@ -297,7 +303,8 @@ the output will try to send to https://mastodon.social.
 It is recommended to change this,
 perhaps to https://botsin.space,
 and make sure you make an account there.
-:code:`INSTANCE_BASE_URL`
+
+* :code:`INSTANCE_BASE_URL`
 
 ========
 Examples
