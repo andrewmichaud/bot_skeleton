@@ -30,14 +30,6 @@ class OutputSkeleton:
         """Wrapped error log with prefix key."""
         self.log.error(f"{self.bot_name}: {message}")
 
-    def default_duplicate_handler(self) -> None:
-        """Default handler for duplicate status error."""
-        self.linfo("Duplicate handler: who cares about duplicate statuses.")
-        return
-
-    def set_duplicate_handler(self, duplicate_handler: typing.Callable[..., None]) -> None:
-        self.handled_errors[187] = duplicate_handler
-
 class OutputRecord:
     """Record for an output occurrence."""
     def __init__(self) -> None:

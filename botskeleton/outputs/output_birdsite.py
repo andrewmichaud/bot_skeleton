@@ -65,20 +65,6 @@ class BirdsiteSkeleton(OutputSkeleton):
                  f"sending post {text} without media:\n{e}\n"),
                 e)
 
-    def send_with_one_media(self, text: str, filename: str) -> OutputRecord:
-        """Send birdsite message, with one media."""
-        try:
-            status = self.api.update_with_media(filename, status=text)
-            self.ldebug(f"Status object from tweet: {status}.")
-            return TweetRecord(tweet_id=status._json["id"], text=text,
-                                             filename=filename)
-
-        except tweepy.TweepError as e:
-            return self.handle_error(
-                (f"Bot {self.bot_name} encountered an error when "
-                 f"sending post {text} with filename {filename}:\n{e}\n"),
-                e)
-
     def send_with_many_media(self, text: str, filenames: typing.Tuple[str, ...]) -> OutputRecord:
         """Upload media to birdsite, and send status and media."""
 
@@ -131,6 +117,14 @@ class BirdsiteSkeleton(OutputSkeleton):
             self.send_dm_sos(message)
 
         return TweetRecord(error=e)
+
+    def default_duplicate_handler(self) -> None:
+        """Default handler for duplicate status error."""
+        self.linfo("Duplicate handler: who cares about duplicate statuses.")
+        return
+
+    def set_duplicate_handler(self, duplicate_handler: typing.Callable[..., None]) -> None:
+        self.handled_errors[187] = duplicate_handler
 
 class TweetRecord(OutputRecord):
     def __init__(self, tweet_id: str=None, text: str=None, filename: str=None, media_ids:

@@ -1,5 +1,6 @@
 """Skeleton for twitter bots. Spooky."""
 import json
+import pkg_resources
 import time
 import typing
 from datetime import datetime
@@ -13,11 +14,13 @@ from clint.textui import progress
 from .outputs.output_birdsite import BirdsiteSkeleton, TweetRecord
 from .outputs.output_mastodon import MastodonSkeleton, TootRecord
 from .outputs.output_utils import OutputSkeleton, OutputRecord
+from .error import BotSkeletonException
 
 
 class IterationRecord:
     """Record of one iteration. Includes records of all outputs."""
     def __init__(self, extra_keys: typing.Dict[str, typing.Any]={}) -> None:
+        self._version = pkg_resources.require(__package__)[0].version
         self._type = self.__class__.__name__
         self.timestamp = datetime.now().isoformat()
         self.extra_keys = extra_keys
@@ -42,21 +45,22 @@ class IterationRecord:
 
 
 class BotSkeleton():
-    def __init__(self, secrets_dir:str=None, log_filename:str="log", history_filename:str=None,
+    def __init__(self, secrets_dir:str=None, log_filename:str=None, history_filename:str=None,
                  bot_name:str="A bot", delay:int=3600) -> None:
         """Set up generic skeleton stuff."""
 
-        self.log_filename = log_filename
-        self.log = util.set_up_logging(log_filename=self.log_filename)
-
         if secrets_dir is None:
             msg = "Please provide secrets dir!"
-            self.log.error(msg)
             raise BotSkeletonException(desc=msg)
 
         self.secrets_dir = secrets_dir
         self.bot_name = bot_name
         self.delay = delay
+
+        if log_filename is None:
+            log_filename = path.join(self.secrets_dir, "log")
+        self.log_filename = log_filename
+        self.log = util.set_up_logging(log_filename=self.log_filename)
 
         if history_filename is None:
             history_filename = path.join(self.secrets_dir, f"{self.bot_name}-history.json")
@@ -111,7 +115,7 @@ class BotSkeleton():
         record = IterationRecord(extra_keys=self.extra_keys)
         for key, output in self.outputs.items():
             if output["active"]:
-                self.log.info(f"Output {key} is active, sending to it.")
+                self.log.info(f"Output {key} is active, calling send on it.")
                 entry: typing.Any = output["obj"]
                 output_result = entry.send(text)
                 record.output_records[key] = output_result
@@ -128,9 +132,13 @@ class BotSkeleton():
         """Post, with one media item, to all outputs."""
         record = IterationRecord(extra_keys=self.extra_keys)
         for key, output in self.outputs.items():
-            entry: typing.Any = output["obj"]
-            output_result = entry.send_with_one_media(text, filename)
-            record.output_records[key] = output_result
+            if output["active"]:
+                self.log.info(f"Output {key} is active, calling media send on it.")
+                entry: typing.Any = output["obj"]
+                output_result = entry.send_with_media(text, [filename])
+                record.output_records[key] = output_result
+            else:
+                self.log.info(f"Output {key} is inactive. Not sending with media.")
 
         self.history.append(record)
         self.update_history()
@@ -143,9 +151,13 @@ class BotSkeleton():
         """Post with several media. Provide filenames so outputs can handle their own uploads."""
         record = IterationRecord(extra_keys=self.extra_keys)
         for key, output in self.outputs.items():
-            entry: typing.Any = output["obj"]
-            output_result = entry.send_with_many_media(text, filenames)
-            record.output_records[key] = output_result
+            if output["active"]:
+                self.log.info(f"Output {key} is active, calling media send on it.")
+                entry: typing.Any = output["obj"]
+                output_result = entry.send_with_media(text, filenames)
+                record.output_records[key] = output_result
+            else:
+                self.log.info(f"Output {key} is inactive. Not sending with media.")
 
         self.history.append(record)
         self.update_history()
@@ -291,14 +303,3 @@ def repair(record: typing.Dict[str, typing.Any]) -> typing.Dict[str, typing.Any]
         record["output_records"] = output_records
 
     return record
-
-class BotSkeletonException(Exception):
-    """
-    Generic Exception for errors in this project
-
-    Attributes:
-        desc  -- short message describing error
-    """
-    def __init__(self, desc:str) -> None:
-        super(BotSkeletonException, self).__init__()
-        self.desc = desc
