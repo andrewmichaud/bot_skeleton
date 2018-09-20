@@ -1,7 +1,13 @@
 3.1.0 (???):
 Various
+* FEATURES
+    * Can now upload captions when sending media posts.
+    * Provide list of captions alongside files in API calls.
+      If there are less captions than files, empty ("") captions will be filled in.
+
 * BUGFIXES
     * Fix history corruption bug that led to nested "output_records".
+    * Fix trying inactive outputs on media calls.
 
 * DEV
     * Unit testing/CI set up. Basic unit tests for built-in outputs and history handling.
