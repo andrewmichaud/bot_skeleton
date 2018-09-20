@@ -135,7 +135,7 @@ class BotSkeleton():
             if output["active"]:
                 self.log.info(f"Output {key} is active, calling media send on it.")
                 entry: typing.Any = output["obj"]
-                output_result = entry.send_with_media(text=text, filenames=[filename],
+                output_result = entry.send_with_media(text, files=[filename],
                                                       captions=[caption])
                 record.output_records[key] = output_result
             else:
@@ -154,7 +154,7 @@ class BotSkeleton():
             if output["active"]:
                 self.log.info(f"Output {key} is active, calling media send on it.")
                 entry: typing.Any = output["obj"]
-                output_result = entry.send_with_media(text=text, filenames=filenames,
+                output_result = entry.send_with_media(text=text, files=list(filenames),
                                                       captions=captions)
                 record.output_records[key] = output_result
             else:

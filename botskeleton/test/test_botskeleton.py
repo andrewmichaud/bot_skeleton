@@ -88,7 +88,6 @@ def test_repair_corrupted_history(testdir: str, corruptedhist: str, repairedcorr
     for i, elem in enumerate(bs.history):
         melem = mbs.history[i]
         for key, item in elem.__dict__.items():
-            print(f"item: {str(item)}\nitem {str(melem.__dict__[key])}")
             assert str(item) == str(melem.__dict__[key])
 
 
@@ -106,7 +105,6 @@ def test_idempotency(testdir: str, testhist: str, log: str) -> None:
     with open(testhist, "r") as f1, open(hist_source, "r") as f2:
         for line1, line2 in zip(f1, f2):
             if line1 != line2:
-                print(f"{line1}\n{line2}")
                 identical = False
                 break
 

@@ -49,12 +49,11 @@ class MastodonSkeleton(OutputSkeleton):
     def send_with_media(self, text: str, files: List[str], captions: List[str] = None
                         ) -> OutputRecord:
         """Upload media to mastodon, and send status and media, and captions if present."""
-        media_ids = None
         try:
             self.ldebug(f"Uploading files {files}.")
             if captions is not None:
-                if len(media_ids) > len(captions):
-                    captions.extend([""] * (len(media_ids) - len(captions)))
+                if len(files) > len(captions):
+                    captions.extend([""] * (len(files) - len(captions)))
 
                 media_dicts = []
                 for i, file in enumerate(files):
