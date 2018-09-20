@@ -9,8 +9,10 @@
                 "timestamp": "2018-09-08T11:21:03.834950",
                 "tweet_id": 1038492406465740800,
                 "text": "less more",
-                "filename": null,
-                "media_ids": []
+                "files": [],
+                "media_ids": [],
+                "captions": [],
+                "filename": null
             }
         }
     },
@@ -24,8 +26,10 @@
                 "timestamp": "2018-09-08T13:26:49.566053",
                 "tweet_id": 1038524055622582272,
                 "text": "ssh cut man ; umount gold raw head number strings ; who",
-                "filename": null,
-                "media_ids": []
+                "files": [],
+                "media_ids": [],
+                "captions": [],
+                "filename": null
             }
         }
     }

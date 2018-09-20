@@ -1,6 +1,6 @@
 """Skeleton code for sending to mastodon."""
 import json
-import typing
+from typing import List
 from os import path
 from logging import Logger
 
@@ -31,10 +31,8 @@ class MastodonSkeleton(OutputSkeleton):
             self.ldebug("Couldn't find INSTANCE_BASE_URL, defaulting to mastodon.social.")
             self.instance_base_url = "https://mastodon.social"
 
-        self.api = mastodon.Mastodon(
-            access_token = ACCESS_TOKEN,
-            api_base_url = self.instance_base_url
-        )
+        self.api = mastodon.Mastodon(access_token=ACCESS_TOKEN,
+                                     api_base_url=self.instance_base_url)
 
     def send(self, text: str) -> OutputRecord:
         """Send mastodon message."""
@@ -44,29 +42,33 @@ class MastodonSkeleton(OutputSkeleton):
             return TootRecord(toot_id=status["id"], text=text)
 
         except mastodon.MastodonError as e:
-            return self.handle_error(
-                (f"Bot {self.bot_name} encountered an error when "
-                 f"sending post {text} without media:\n{e}\n"),
-                e)
+            return self.handle_error((f"Bot {self.bot_name} encountered an error when "
+                                      f"sending post {text} without media:\n{e}\n"),
+                                     e)
 
-    def send_with_one_media(self, text: str, filename: str) -> OutputRecord:
-        """Send mastodon message, with one media."""
-        filenames = tuple(filename)
-        return self.send_with_many_media(text, filenames)
-
-    def send_with_many_media(self, text: str, filenames: typing.Tuple[str, ...]) -> OutputRecord:
-        """Upload media to mastodon, and send status and media."""
+    def send_with_media(self, text: str, files: List[str], captions: List[str] = None
+                        ) -> OutputRecord:
+        """Upload media to mastodon, and send status and media, and captions if present."""
         media_ids = None
         try:
-            self.ldebug(f"Uploading filenames {filenames}.")
-            # TODO could probably put in some sensible, somewhat-useful descriptions on upload.
-            media_dicts = [self.api.media_post(filename) for filename in filenames]
+            self.ldebug(f"Uploading files {files}.")
+            if captions is not None:
+                if len(media_ids) > len(captions):
+                    captions.extend([""] * (len(media_ids) - len(captions)))
+
+                media_dicts = []
+                for i, file in enumerate(files):
+                    caption = captions[i]
+                    media_dicts.append(self.api.media_post(file, description=caption))
+            else:
+                media_dicts = [self.api.media_post(file) for file in files]
+
             self.ldebug(f"Media ids {media_dicts}")
 
         except mastodon.MastodonError as e:
             return self.handle_error(
-                f"Bot {self.bot_name} encountered an error when uploading {filenames}:\n{e}\n",
-                e)
+                f"Bot {self.bot_name} encountered an error when uploading {files}:\n{e}\n", e
+            )
 
         try:
             status = self.api.status_post(status=text, media_ids=media_dicts)
@@ -74,10 +76,9 @@ class MastodonSkeleton(OutputSkeleton):
             return TootRecord(toot_id=status["id"], text=text, media_ids=media_dicts)
 
         except mastodon.MastodonError as e:
-            return self.handle_error(
-                (f"Bot {self.bot_name} encountered an error when "
-                 f"sending post {text} with media ids {media_ids}:\n{e}\n"),
-                e)
+            return self.handle_error((f"Bot {self.bot_name} encountered an error when "
+                                      f"sending post {text} with media ids {media_ids}:\n{e}\n"),
+                                     e)
 
     # TODO find a replacement/find out how mastodon DMs work.
     # def send_dm_sos(self, message):
@@ -100,16 +101,17 @@ class MastodonSkeleton(OutputSkeleton):
 
         return TootRecord(error=e)
 
+
 class TootRecord(OutputRecord):
-    def __init__(self, toot_id: str=None, text: str=None, filename: str=None, media_ids:
-                 typing.List[int]=[], error: mastodon.MastodonError=None
+    def __init__(self, toot_id: str = None, text: str = None, files: List[str] = None,
+                 media_ids: List[int] = [], error: mastodon.MastodonError = None
                  ) -> None:
         """Create toot record object."""
         super().__init__()
         self._type = self.__class__.__name__
         self.toot_id = toot_id
         self.text = text
-        self.filename = filename
+        self.files = files
         self.media_ids = media_ids
 
         if error is not None:
@@ -119,8 +121,8 @@ class TootRecord(OutputRecord):
                 if isinstance(error.message, str):
                     self.error_message = error.message
                 elif isinstance(error.message, list):
-                    self.error_code = error.message[0]['code']
-                    self.error_message = error.message[0]['message']
+                    self.error_code = error.message[0]["code"]
+                    self.error_message = error.message[0]["message"]
             except AttributeError:
                 # fine, I didn't want it anyways.
                 pass

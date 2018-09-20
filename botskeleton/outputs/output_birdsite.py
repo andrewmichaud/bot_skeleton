@@ -1,6 +1,6 @@
 """Skeleton code for sending to the bad bird site."""
 import json
-import typing
+from typing import Any, Callable, List
 from os import path
 from logging import Logger
 
@@ -65,23 +65,35 @@ class BirdsiteSkeleton(OutputSkeleton):
                  f"sending post {text} without media:\n{e}\n"),
                 e)
 
-    def send_with_many_media(self, text: str, filenames: typing.Tuple[str, ...]) -> OutputRecord:
-        """Upload media to birdsite, and send status and media."""
+    def send_with_media(self, text: str, files: List[str], captions: List[str]=None
+                        ) -> OutputRecord:
+        """Upload media to birdsite, and send status and media, and captions if present."""
 
+        # upload media
         media_ids = None
         try:
-            self.ldebug(f"Uploading filenames {filenames}.")
-            media_ids = [self.api.media_upload(filename).media_id_string for filename in filenames]
+            self.ldebug(f"Uploading files {files}.")
+            media_ids = [self.api.media_upload(file).media_id_string for file in files]
         except tweepy.TweepError as e:
             return self.handle_error(
-                f"Bot {self.bot_name} encountered an error when uploading {filenames}:\n{e}\n",
+                f"Bot {self.bot_name} encountered an error when uploading {files}:\n{e}\n",
                 e)
 
+        # apply captions, if present
+        if captions is not None:
+            if len(media_ids) > len(captions):
+                captions.extend([""] * (len(media_ids) - len(captions)))
+
+            for i, media_id in enumerate(media_ids):
+                caption = captions[i]
+                self.upload_caption(media_id=media_id, caption=caption)
+
+        # send status
         try:
             status = self.api.update_status(status=text, media_ids=media_ids)
             self.ldebug(f"Status object from tweet: {status}.")
-            return TweetRecord(tweet_id=status._json["id"], text=text,
-                                             media_ids=media_ids)
+            return TweetRecord(tweet_id=status._json["id"], text=text, media_ids=media_ids,
+                               captions=captions, files=files)
 
         except tweepy.TweepError as e:
             return self.handle_error(
@@ -123,20 +135,36 @@ class BirdsiteSkeleton(OutputSkeleton):
         self.linfo("Duplicate handler: who cares about duplicate statuses.")
         return
 
-    def set_duplicate_handler(self, duplicate_handler: typing.Callable[..., None]) -> None:
+    def set_duplicate_handler(self, duplicate_handler: Callable[..., None]) -> None:
         self.handled_errors[187] = duplicate_handler
 
+    # taken from https://github.com/tweepy/tweepy/issues/716#issuecomment-398844271
+    def upload_caption(self, media_id: str, caption: str) -> Any:
+        post_data = {
+            "media_id": media_id,
+            "alt_text": {
+                "text": caption,
+            },
+        }
+
+        metadata_path = "/media/metadata/create.json"
+
+        return tweepy.binder.bind_api(api=self.api, path=metadata_path, method="POST",
+                                      allowed_param=[], require_auth=True, upload_api=True
+                                      )(post_data=json.dumps(post_data))
+
 class TweetRecord(OutputRecord):
-    def __init__(self, tweet_id: str=None, text: str=None, filename: str=None, media_ids:
-                 typing.List[str]=[], error: tweepy.TweepError=None
+    def __init__(self, tweet_id: str=None, text: str=None, files: List[str]=[],
+                 media_ids: List[str]=[], captions: List[str]=[], error: tweepy.TweepError=None
                  ) -> None:
         """Create tweet record object."""
         super().__init__()
         self._type = self.__class__.__name__
         self.tweet_id = tweet_id
         self.text = text
-        self.filename = filename
+        self.files = files
         self.media_ids = media_ids
+        self.captions = captions
 
         if error is not None:
             # So Python doesn't get upset when we try to json-dump the record later.
@@ -145,8 +173,8 @@ class TweetRecord(OutputRecord):
                 if isinstance(error.message, str):
                     self.error_message = error.message
                 elif isinstance(error.message, list):
-                    self.error_code = error.message[0]['code']
-                    self.error_message = error.message[0]['message']
+                    self.error_code = error.message[0]["code"]
+                    self.error_message = error.message[0]["message"]
             except AttributeError:
                 # fine, I didn't want it anyways.
                 pass

@@ -15,8 +15,10 @@ class OutputSkeleton:
         # Output skeletons must implement these.
         self.cred_init: typing.Callable[[str, Logger], None]
         self.send: typing.Callable[[str], OutputRecord]
-        self.send_with_one_media: typing.Callable[[str, str], OutputRecord]
-        self.send_with_many_media: typing.Callable[[str, typing.Tuple[str, ...]], OutputRecord]
+        self.send_with_media: typing.Callable[[str,
+                                               typing.List[str],
+                                               typing.List[str]],
+                                              OutputRecord]
 
     def linfo(self, message: str) -> None:
         """Wrapped debug log with prefix key."""

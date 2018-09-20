@@ -95,6 +95,10 @@ def test_repair_corrupted_history(testdir: str, corruptedhist: str, repairedcorr
 def test_idempotency(testdir: str, testhist: str, log: str) -> None:
     bs = botskeleton.BotSkeleton(secrets_dir=testdir, history_filename=testhist, log_filename=log)
     bs.load_history()
+
+    # maybe find a less hacky way to do this.
+    for entry in bs.history:
+        entry._version = "9999"
     bs.update_history()
 
     identical = True

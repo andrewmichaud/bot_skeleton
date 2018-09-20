@@ -1,6 +1,7 @@
 [
     {
         "_type": "IterationRecord",
+        "_version": "9999",
         "extra_keys": {},
         "output_records": {
             "birdsite": {
@@ -24,6 +25,7 @@
     },
     {
         "_type": "IterationRecord",
+        "_version": "9999",
         "extra_keys": {},
         "output_records": {
             "birdsite": {

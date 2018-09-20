@@ -117,7 +117,7 @@ class BotSkeleton():
             if output["active"]:
                 self.log.info(f"Output {key} is active, calling send on it.")
                 entry: typing.Any = output["obj"]
-                output_result = entry.send(text)
+                output_result = entry.send(text=text)
                 record.output_records[key] = output_result
 
             else:
@@ -128,14 +128,15 @@ class BotSkeleton():
 
         return record
 
-    def send_with_one_media(self, text: str, filename: str) -> IterationRecord:
+    def send_with_one_media(self, text: str, filename: str, caption: str="") -> IterationRecord:
         """Post, with one media item, to all outputs."""
         record = IterationRecord(extra_keys=self.extra_keys)
         for key, output in self.outputs.items():
             if output["active"]:
                 self.log.info(f"Output {key} is active, calling media send on it.")
                 entry: typing.Any = output["obj"]
-                output_result = entry.send_with_media(text, [filename])
+                output_result = entry.send_with_media(text=text, filenames=[filename],
+                                                      captions=[caption])
                 record.output_records[key] = output_result
             else:
                 self.log.info(f"Output {key} is inactive. Not sending with media.")
@@ -145,8 +146,7 @@ class BotSkeleton():
 
         return record
 
-    def send_with_many_media(
-            self, text: str, *filenames: str
+    def send_with_many_media(self, text: str, *filenames: str, captions: typing.List[str]=[]
                              ) -> IterationRecord:
         """Post with several media. Provide filenames so outputs can handle their own uploads."""
         record = IterationRecord(extra_keys=self.extra_keys)
@@ -154,7 +154,8 @@ class BotSkeleton():
             if output["active"]:
                 self.log.info(f"Output {key} is active, calling media send on it.")
                 entry: typing.Any = output["obj"]
-                output_result = entry.send_with_media(text, filenames)
+                output_result = entry.send_with_media(text=text, filenames=filenames,
+                                                      captions=captions)
                 record.output_records[key] = output_result
             else:
                 self.log.info(f"Output {key} is inactive. Not sending with media.")
