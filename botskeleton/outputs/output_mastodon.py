@@ -76,7 +76,8 @@ class MastodonSkeleton(OutputSkeleton):
 
         except mastodon.MastodonError as e:
             return self.handle_error((f"Bot {self.bot_name} encountered an error when "
-                                      f"sending post {text} with media ids {media_ids}:\n{e}\n"),
+                                      f"sending post {text} with media dicts {media_dicts}:"
+                                      f"\n{e}\n"),
                                      e)
 
     # TODO find a replacement/find out how mastodon DMs work.
