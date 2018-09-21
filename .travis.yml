@@ -3,13 +3,12 @@ language: python
 os:
     - linux
 
-# TODO re-add PyPy when they get >=3.5 support.
-python:
-    - "3.6"
-    - "nightly"
-
+# TODO re-add PyPy when they get >=3.6 support.
 matrix:
+    include:
+        - python: "3.6"
     allow_failures:
+        - python: "3.7"
         - python: "nightly"
 
 install:
