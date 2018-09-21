@@ -134,6 +134,9 @@ class BirdsiteSkeleton(OutputSkeleton):
 
     def handle_caption_upload(self, media_ids: List[str], captions: Optional[List[str]]) -> None:
         """Handle uploading all captions."""
+        if captions is None:
+            return
+
         if len(media_ids) > len(captions):
             captions.extend([""] * (len(media_ids) - len(captions)))
 
