@@ -4,12 +4,13 @@ os:
     - linux
 
 # TODO re-add PyPy when they get >=3.6 support.
+python:
+    - "3.6"
+
 matrix:
-    include:
-        - python: "3.6"
     allow_failures:
-        - python: "3.7"
         - python: "nightly"
+        - python: "3.7"
 
 install:
     - pip install .
