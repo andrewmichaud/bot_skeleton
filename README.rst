@@ -55,11 +55,10 @@ The :code:`BotSkeleton` class is the main object for a bot,
 holding all the send methods and credentials.
 It MUST be constructed with a `secrets_dir`
 - this is the directory where it will expect credentials,
-and where it will write its history file.
-You may also provide a log_filename (default is in the directory of execution,
-under "log"),
-a bot_name (default is "A bot"),
-a history_filename (default is "bot_name-history.json"),
+and where it will write its history file and log file by default.
+You may also provide a log_filename (defaults to :code:`SECRETS_DIR/log`),
+a bot_name (defaults to "A bot"),
+a history_filename (defaults to :code:`SECRETS_DIR/bot_name-history.json`),
 and a delay,
 which is the time the bot will sleep after posting.
 
