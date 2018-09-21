@@ -18,9 +18,9 @@ class BirdsiteSkeleton(OutputSkeleton):
             187: self.default_duplicate_handler,
         }
 
-    def cred_init(self, secrets_dir: str, log: Logger) -> None:
+    def cred_init(self, secrets_dir: str, log: Logger, bot_name: str="") -> None:
         """Initialize what requires credentials/secret files."""
-        super().__init__(secrets_dir, log)
+        super().__init__(secrets_dir, log, bot_name)
 
         self.ldebug("Retrieving CONSUMER_KEY...")
         with open(path.join(self.secrets_dir, "CONSUMER_KEY")) as f:
@@ -80,13 +80,7 @@ class BirdsiteSkeleton(OutputSkeleton):
                 e)
 
         # apply captions, if present
-        if captions is not None:
-            if len(media_ids) > len(captions):
-                captions.extend([""] * (len(media_ids) - len(captions)))
-
-            for i, media_id in enumerate(media_ids):
-                caption = captions[i]
-                self.upload_caption(media_id=media_id, caption=caption)
+        self.handle_caption_upload(media_ids, captions)
 
         # send status
         try:
@@ -137,6 +131,15 @@ class BirdsiteSkeleton(OutputSkeleton):
 
     def set_duplicate_handler(self, duplicate_handler: Callable[..., None]) -> None:
         self.handled_errors[187] = duplicate_handler
+
+    def handle_caption_upload(self, media_ids: List[str], captions: Optional[List[str]]) -> None:
+        """Handle uploading all captions."""
+        if len(media_ids) > len(captions):
+            captions.extend([""] * (len(media_ids) - len(captions)))
+
+        for i, media_id in enumerate(media_ids):
+            caption = captions[i]
+            self.upload_caption(media_id=media_id, caption=caption)
 
     # taken from https://github.com/tweepy/tweepy/issues/716#issuecomment-398844271
     def upload_caption(self, media_id: str, caption: str) -> Any:

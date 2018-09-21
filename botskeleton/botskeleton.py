@@ -2,11 +2,11 @@
 import json
 import pkg_resources
 import time
-import typing
 from datetime import datetime
 from logging import Logger
 from os import path
 from shutil import copyfile
+from typing import Any, Callable, Dict, List
 
 import drewtilities as util
 from clint.textui import progress
@@ -16,15 +16,15 @@ from .outputs.output_mastodon import MastodonSkeleton, TootRecord
 from .outputs.output_utils import OutputSkeleton, OutputRecord
 from .error import BotSkeletonException
 
-
+# Record of one round of media uploads.
 class IterationRecord:
     """Record of one iteration. Includes records of all outputs."""
-    def __init__(self, extra_keys: typing.Dict[str, typing.Any]={}) -> None:
+    def __init__(self, extra_keys: Dict[str, Any]={}) -> None:
         self._version = pkg_resources.require(__package__)[0].version
         self._type = self.__class__.__name__
         self.timestamp = datetime.now().isoformat()
         self.extra_keys = extra_keys
-        self.output_records: typing.Dict[str, OutputRecord] = {}
+        self.output_records: Dict[str, OutputRecord] = {}
 
     def __str__(self) -> str:
         """Print object."""
@@ -35,7 +35,7 @@ class IterationRecord:
         return str(self)
 
     @classmethod
-    def from_dict(cls, obj_dict: typing.Dict[str, typing.Any]) -> "IterationRecord":
+    def from_dict(cls, obj_dict: Dict[str, Any]) -> "IterationRecord":
         """Get object back from dict."""
         obj = cls()
         for key, item in obj_dict.items():
@@ -44,6 +44,7 @@ class IterationRecord:
         return obj
 
 
+# Main class - handles sending and history management and such.
 class BotSkeleton():
     def __init__(self, secrets_dir:str=None, log_filename:str=None, history_filename:str=None,
                  bot_name:str="A bot", delay:int=3600) -> None:
@@ -66,7 +67,7 @@ class BotSkeleton():
             history_filename = path.join(self.secrets_dir, f"{self.bot_name}-history.json")
         self.history_filename = history_filename
 
-        self.extra_keys: typing.Dict[str, typing.Any] = {}
+        self.extra_keys: Dict[str, Any] = {}
         self.history = self.load_history()
 
         self.outputs = {
@@ -80,35 +81,11 @@ class BotSkeleton():
             },
         }
 
-        self.setup_all_outputs()
+        self._setup_all_outputs()
 
-    def setup_all_outputs(self) -> None:
-        """Set up all output methods. Provide them credentials and anything else they need."""
-
-        # The way this is gonna work is that we assume an output should be set up iff it has a
-        # credentials_ directory under our secrets dir.
-        for key in self.outputs.keys():
-            credentials_dir = path.join(self.secrets_dir, f"credentials_{key}")
-
-            # special-case birdsite for historical reasons.
-            if key == "birdsite" and not path.isdir(credentials_dir) \
-                    and path.isfile(path.join(self.secrets_dir, "CONSUMER_KEY")):
-                credentials_dir = self.secrets_dir
-
-            if path.isdir(credentials_dir):
-                output_skeleton = self.outputs[key]
-
-                output_skeleton["active"] = True
-
-                obj: typing.Any = output_skeleton["obj"]
-                obj.cred_init(credentials_dir, self.log)
-
-                obj.bot_name = self.bot_name
-
-                output_skeleton["obj"] = obj
-
-                self.outputs[key] = output_skeleton
-
+    ###############################################################################################
+    ####        PUBLIC API METHODS                                                             ####
+    ###############################################################################################
     def send(self, text: str) -> IterationRecord:
         """Post, without media, to all outputs."""
         # TODO there could be some annotation stuff here.
@@ -116,7 +93,7 @@ class BotSkeleton():
         for key, output in self.outputs.items():
             if output["active"]:
                 self.log.info(f"Output {key} is active, calling send on it.")
-                entry: typing.Any = output["obj"]
+                entry: Any = output["obj"]
                 output_result = entry.send(text=text)
                 record.output_records[key] = output_result
 
@@ -134,7 +111,7 @@ class BotSkeleton():
         for key, output in self.outputs.items():
             if output["active"]:
                 self.log.info(f"Output {key} is active, calling media send on it.")
-                entry: typing.Any = output["obj"]
+                entry: Any = output["obj"]
                 output_result = entry.send_with_media(text, files=[filename],
                                                       captions=[caption])
                 record.output_records[key] = output_result
@@ -146,14 +123,14 @@ class BotSkeleton():
 
         return record
 
-    def send_with_many_media(self, text: str, *filenames: str, captions: typing.List[str]=[]
+    def send_with_many_media(self, text: str, *filenames: str, captions: List[str]=[]
                              ) -> IterationRecord:
         """Post with several media. Provide filenames so outputs can handle their own uploads."""
         record = IterationRecord(extra_keys=self.extra_keys)
         for key, output in self.outputs.items():
             if output["active"]:
                 self.log.info(f"Output {key} is active, calling media send on it.")
-                entry: typing.Any = output["obj"]
+                entry: Any = output["obj"]
                 output_result = entry.send_with_media(text=text, files=list(filenames),
                                                       captions=captions)
                 record.output_records[key] = output_result
@@ -171,18 +148,17 @@ class BotSkeleton():
         for _ in progress.bar(range(self.delay)):
             time.sleep(1)
 
-    def store_extra_info(self, key: str, value: typing.Any) -> None:
+    def store_extra_info(self, key: str, value: Any) -> None:
         """Store some extra value in the tweet storage."""
         self.extra_keys[key] = value
 
-    def store_extra_keys(self, d: typing.Dict[str, typing.Any]) -> None:
+    def store_extra_keys(self, d: Dict[str, Any]) -> None:
         """Store several extra values in the tweet storage."""
         new_dict = dict(self.extra_keys, **d)
         self.extra_keys = new_dict.copy()
 
     def update_history(self) -> None:
         """Update tweet history."""
-
         self.log.debug(f"Saving history. History is: \n{self.history}")
 
         jsons = []
@@ -190,26 +166,18 @@ class BotSkeleton():
             json_item = item.__dict__
 
             # Convert sub-entries into JSON as well.
-            output_records = {}
-            for key, sub_item in item.output_records.items():
-                if isinstance(sub_item, dict):
-                    output_records[key] = sub_item
-                else:
-                    output_records[key] = sub_item.__dict__
-
-            json_item["output_records"] = output_records
+            json_item["output_records"] = self._parse_output_records(item)
 
             jsons.append(json_item)
 
         if not path.isfile(self.history_filename):
-            with open(self.history_filename, "a+") as f:
-                f.close()
+            open(self.history_filename, "a+").close()
 
         with open(self.history_filename, "w") as f:
             json.dump(jsons, f, default=lambda x: x.__dict__().copy(), sort_keys=True, indent=4)
             f.write("\n") # add trailing new line dump skips.
 
-    def load_history(self) -> typing.List["IterationRecord"]:
+    def load_history(self) -> List["IterationRecord"]:
         """Load tweet history."""
         if path.isfile(self.history_filename):
             with open(self.history_filename, "r") as f:
@@ -222,11 +190,11 @@ class BotSkeleton():
                     copyfile(self.history_filename, f"{self.history_filename}.bak")
                     return []
 
-                history: typing.List[IterationRecord] = []
+                history: List[IterationRecord] = []
                 for hdict_pre in dicts:
 
                     # repair any corrupted entries
-                    hdict = repair(hdict_pre)
+                    hdict = _repair(hdict_pre)
 
                     if "_type" in hdict and \
                             hdict["_type"] == IterationRecord.__name__:
@@ -258,19 +226,68 @@ class BotSkeleton():
         else:
             return []
 
-def rate_limited(max_per_hour: int, *args: typing.Any) -> typing.Callable[..., typing.Any]:
+    ###############################################################################################
+    ####        "PRIVATE" CLASS METHODS AND UTILITIES                                          ####
+    ###############################################################################################
+    def _setup_all_outputs(self) -> None:
+        """Set up all output methods. Provide them credentials and anything else they need."""
+
+        # The way this is gonna work is that we assume an output should be set up iff it has a
+        # credentials_ directory under our secrets dir.
+        for key in self.outputs.keys():
+            credentials_dir = path.join(self.secrets_dir, f"credentials_{key}")
+
+            # special-case birdsite for historical reasons.
+            if key == "birdsite" and not path.isdir(credentials_dir) \
+                    and path.isfile(path.join(self.secrets_dir, "CONSUMER_KEY")):
+                credentials_dir = self.secrets_dir
+
+            if path.isdir(credentials_dir):
+                output_skeleton = self.outputs[key]
+
+                output_skeleton["active"] = True
+
+                obj: Any = output_skeleton["obj"]
+                obj.cred_init(credentials_dir, self.log, bot_name=self.bot_name)
+
+                output_skeleton["obj"] = obj
+
+                self.outputs[key] = output_skeleton
+
+    def _parse_output_records(self, item: IterationRecord) -> Dict[str, Any]:
+        """Parse output records into dicts ready for JSON."""
+        output_records = {}
+        for key, sub_item in item.output_records.items():
+            if isinstance(sub_item, dict):
+                output_records[key] = sub_item
+            else:
+                output_records[key] = sub_item.__dict__
+
+        return output_records
+
+
+###################################################################################################
+####        RE-EXPOSED PUBLIC API METHODS                                                      ####
+###################################################################################################
+def rate_limited(max_per_hour: int, *args: Any) -> Callable[..., Any]:
     """Rate limit a function."""
     return util.rate_limited(max_per_hour, *args)
+
 
 def set_up_logging(log_filename: str) -> Logger:
     """Set up proper logging."""
     return util.set_up_logging(log_filename=log_filename)
 
+
 def random_line(file_path: str) -> str:
     """Get random line from file."""
     return util.random_line(file_path=file_path)
 
-def repair(record: typing.Dict[str, typing.Any]) -> typing.Dict[str, typing.Any]:
+
+###################################################################################################
+####      "PRIVATE" MODULE METHODS, NOT INTENDED FOR PUBLIC USE                                ####
+###################################################################################################
+def _repair(record: Dict[str, Any]) -> Dict[str, Any]:
     """Repair a corrupted IterationRecord."""
     output_records = record.get("output_records")
     if record.get("_type") == "IterationRecord" and output_records is not None:

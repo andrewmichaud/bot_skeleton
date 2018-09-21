@@ -1,24 +1,21 @@
 """Stuff used by output classes."""
-import typing
 from datetime import datetime
 from logging import Logger
+from typing import Any, Callable, Dict, List
 
 class OutputSkeleton:
     """Common stuff for output skeletons."""
-    def __init__(self, secrets_dir: str, log: Logger) -> None:
+    def __init__(self, secrets_dir: str, log: Logger, bot_name: str) -> None:
         self.log = log
         self.secrets_dir = secrets_dir
 
-        self.bot_name = ""
-        self.handled_errors: typing.Dict[int, typing.Any] = {}
+        self.bot_name = bot_name
+        self.handled_errors: Dict[int, Any] = {}
 
         # Output skeletons must implement these.
-        self.cred_init: typing.Callable[[str, Logger], None]
-        self.send: typing.Callable[[str], OutputRecord]
-        self.send_with_media: typing.Callable[[str,
-                                               typing.List[str],
-                                               typing.List[str]],
-                                              OutputRecord]
+        self.cred_init: Callable[[str, Logger, str], None]
+        self.send: Callable[[str], OutputRecord]
+        self.send_with_media: Callable[[str, List[str], List[str]], OutputRecord]
 
     def linfo(self, message: str) -> None:
         """Wrapped debug log with prefix key."""
@@ -48,7 +45,7 @@ class OutputRecord:
         return str(self)
 
     @classmethod
-    def from_dict(cls, obj_dict: typing.Dict[str, typing.Any]) -> "OutputRecord":
+    def from_dict(cls, obj_dict: Dict[str, Any]) -> "OutputRecord":
         """Get object back from dict."""
         obj = cls()
         for key, item in obj_dict.items():

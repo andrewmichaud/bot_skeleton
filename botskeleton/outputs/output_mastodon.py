@@ -13,9 +13,9 @@ class MastodonSkeleton(OutputSkeleton):
         """Set up mastodon skeleton stuff."""
         self.name = "MASTODON"
 
-    def cred_init(self, secrets_dir: str, log: Logger) -> None:
+    def cred_init(self, secrets_dir: str, log: Logger, bot_name: str="") -> None:
         """Initialize what requires credentials/secret files."""
-        super().__init__(secrets_dir, log)
+        super().__init__(secrets_dir, log, bot_name)
 
         self.ldebug("Retrieving ACCESS_TOKEN ...")
         with open(path.join(self.secrets_dir, "ACCESS_TOKEN")) as f:
