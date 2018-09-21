@@ -1,8 +1,8 @@
 """Skeleton code for sending to the bad bird site."""
 import json
-from typing import Any, Callable, List
-from os import path
 from logging import Logger
+from os import path
+from typing import Any, Callable, List, Optional
 
 import tweepy
 
@@ -155,7 +155,8 @@ class BirdsiteSkeleton(OutputSkeleton):
 
 class TweetRecord(OutputRecord):
     def __init__(self, tweet_id: str=None, text: str=None, files: List[str]=[],
-                 media_ids: List[str]=[], captions: List[str]=[], error: tweepy.TweepError=None
+                 media_ids: List[str]=[], captions: Optional[List[str]]=[],
+                 error: tweepy.TweepError=None
                  ) -> None:
         """Create tweet record object."""
         super().__init__()

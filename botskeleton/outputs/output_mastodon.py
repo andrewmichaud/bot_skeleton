@@ -1,8 +1,8 @@
 """Skeleton code for sending to mastodon."""
 import json
-from typing import List
-from os import path
 from logging import Logger
+from os import path
+from typing import List, Optional
 
 import mastodon
 
@@ -72,7 +72,8 @@ class MastodonSkeleton(OutputSkeleton):
         try:
             status = self.api.status_post(status=text, media_ids=media_dicts)
             self.ldebug(f"Status object from toot: {status}.")
-            return TootRecord(toot_id=status["id"], text=text, media_ids=media_dicts)
+            return TootRecord(toot_id=status["id"], text=text, media_ids=media_dicts,
+                              captions=captions)
 
         except mastodon.MastodonError as e:
             return self.handle_error((f"Bot {self.bot_name} encountered an error when "
@@ -104,7 +105,8 @@ class MastodonSkeleton(OutputSkeleton):
 
 class TootRecord(OutputRecord):
     def __init__(self, toot_id: str = None, text: str = None, files: List[str] = None,
-                 media_ids: List[int] = [], error: mastodon.MastodonError = None
+                 media_ids: List[int] = [], error: mastodon.MastodonError = None,
+                 captions: Optional[List[str]]=None
                  ) -> None:
         """Create toot record object."""
         super().__init__()
@@ -113,6 +115,7 @@ class TootRecord(OutputRecord):
         self.text = text
         self.files = files
         self.media_ids = media_ids
+        self.captions = captions
 
         if error is not None:
             # So Python doesn't get upset when we try to json-dump the record later.
