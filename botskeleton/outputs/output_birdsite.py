@@ -9,6 +9,9 @@ import tweepy
 from .output_utils import OutputRecord, OutputSkeleton
 
 
+BIRDSITE_MAX_MEDIA = 4
+
+
 class BirdsiteSkeleton(OutputSkeleton):
     def __init__(self) -> None:
         """Set up birdsite skeleton stuff."""
@@ -68,7 +71,18 @@ class BirdsiteSkeleton(OutputSkeleton):
     def send_with_media(self, text: str, files: List[str], captions: List[str]=None
                         ) -> OutputRecord:
         """Upload media to birdsite, and send status and media, and captions if present."""
+        # Check if we need to split media between multiple tweets.
+        if len(files) > BIRDSITE_MAX_MEDIA:
+            index = 0
+            
+            
+        else:
+            return self.send_with_media_helper(text=text, files=files, captions=captions,
+                                        in_reply_to=None)
 
+    def send_with_media_helper(self, text: str, files: List[str], captions: List[str]=None,
+                               in_reply_to=None) -> OutputRecord:
+        """Upload one media to birdsite, possibly in response to another tweet."""
         # upload media
         media_ids = None
         try:
@@ -84,7 +98,12 @@ class BirdsiteSkeleton(OutputSkeleton):
 
         # send status
         try:
-            status = self.api.update_status(status=text, media_ids=media_ids)
+            if in_reply_to is not None:
+                status = self.api.update_status(status=text, in_reply_to=in_reply_to,
+                                                media_ids=media_ids)
+            else:
+                status = self.api.update_status(status=text, media_ids=media_ids)
+
             self.ldebug(f"Status object from tweet: {status}.")
             return TweetRecord(tweet_id=status._json["id"], text=text, media_ids=media_ids,
                                captions=captions, files=files)
