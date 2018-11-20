@@ -60,29 +60,65 @@ class BirdsiteSkeleton(OutputSkeleton):
         try:
             status = self.api.update_status(text)
             self.ldebug(f"Status object from tweet: {status}.")
-            return TweetRecord(tweet_id=status._json["id"], text=text)
+            return [TweetRecord({"tweet_id":status._json["id"], "text"=text})]
 
         except tweepy.TweepError as e:
-            return self.handle_error(
+            return [self.handle_error(
                 (f"Bot {self.bot_name} encountered an error when "
                  f"sending post {text} without media:\n{e}\n"),
-                e)
+                e)]
 
     def send_with_media(self, text: str, files: List[str], captions: List[str]=None
                         ) -> OutputRecord:
         """Upload media to birdsite, and send status and media, and captions if present."""
-        # Check if we need to split media between multiple tweets.
+        # check if we need to split media between multiple tweets
+        # put text just on first message
+        records = []
         if len(files) > BIRDSITE_MAX_MEDIA:
-            index = 0
-            
-            
+            in_reply_to = None
+            iterations = len(files) // BIRDSITE_MAX_MEDIA)
+            leftovers = len(files) % BIRDSITE_MAX_MEDIA
+
+            for i in range(iterations):
+                start = (i-1) * BIRDSITE_MAX_MEDIA
+                end = i * BIRDSITE_MAX_MEDIA
+                file_slice = files[start:end]
+                caption_slice = captions[start:end]
+
+                if in_reply_to is None:
+                    txt = text
+                else:
+                    txt = None
+
+                record = self.send_with_media_helper(text=txt,
+                                                     files=file_slice,
+                                                     captions=caption_slice,
+                                                     in_reply_to=in_reply_to)
+
+                in_reply_to = record.tweet_id
+                records += record
+
+            # get leftovers
+            if leftovers > 0:
+                start = len(files) - leftovers
+                file_slice = files[start:]
+                caption_slice = captions[start:]
+
+                record = self.send_with_media_helper(text=txt,
+                                                     files=file_slice,
+                                                     captions=caption_slice,
+                                                     in_reply_to=in_reply_to)
+                records += record
+
+            return records
+
         else:
-            return self.send_with_media_helper(text=text, files=files, captions=captions,
-                                        in_reply_to=None)
+            return [self.send_with_media_helper(text=text, files=files, captions=captions,
+                                        in_reply_to=None)]
 
     def send_with_media_helper(self, text: str, files: List[str], captions: List[str]=None,
                                in_reply_to=None) -> OutputRecord:
-        """Upload one media to birdsite, possibly in response to another tweet."""
+        """Upload one set of media to birdsite, possibly in response to another tweet."""
         # upload media
         media_ids = None
         try:
@@ -105,8 +141,11 @@ class BirdsiteSkeleton(OutputSkeleton):
                 status = self.api.update_status(status=text, media_ids=media_ids)
 
             self.ldebug(f"Status object from tweet: {status}.")
-            return TweetRecord(tweet_id=status._json["id"], text=text, media_ids=media_ids,
-                               captions=captions, files=files)
+            return TweetRecord({"tweet_id": status._json["id"],
+                                "text": text,
+                                "media_ids": media_ids,
+                                "captions": captions,
+                                "files": files})
 
         except tweepy.TweepError as e:
             return self.handle_error(
@@ -141,7 +180,7 @@ class BirdsiteSkeleton(OutputSkeleton):
         except Exception:
             self.send_dm_sos(message)
 
-        return TweetRecord(error=e)
+        return TweetRecord({"error": e})
 
     def default_duplicate_handler(self) -> None:
         """Default handler for duplicate status error."""
@@ -179,18 +218,18 @@ class BirdsiteSkeleton(OutputSkeleton):
                                       )(post_data=json.dumps(post_data))
 
 class TweetRecord(OutputRecord):
-    def __init__(self, tweet_id: str=None, text: str=None, files: List[str]=[],
-                 media_ids: List[str]=[], captions: Optional[List[str]]=[],
-                 error: tweepy.TweepError=None
-                 ) -> None:
+    def __init__(self, record_data: Dict[str, Any]={}) -> None:
         """Create tweet record object."""
         super().__init__()
         self._type = self.__class__.__name__
-        self.tweet_id = tweet_id
-        self.text = text
-        self.files = files
-        self.media_ids = media_ids
-        self.captions = captions
+        self.tweet_id = record_data.get("tweet_id", None)
+        self.text = record_data.get("text", None)
+        self.files = record_data.get("files", None)
+        self.media_ids = record_data.get("media_ids", [])
+        self.captions = record._data.get("captions", [])
+        self.in_reply_to = record_data.get("in_reply_to", None)
+
+        self.error = record_data.get("error", None)
 
         if error is not None:
             # So Python doesn't get upset when we try to json-dump the record later.

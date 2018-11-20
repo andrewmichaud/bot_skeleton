@@ -8,6 +8,10 @@ import mastodon
 
 from .output_utils import OutputRecord, OutputSkeleton
 
+
+MASTODON_MAX_MEDIA = 4
+
+
 class MastodonSkeleton(OutputSkeleton):
     def __init__(self) -> None:
         """Set up mastodon skeleton stuff."""
@@ -39,16 +43,69 @@ class MastodonSkeleton(OutputSkeleton):
         try:
             status = self.api.status_post(status=text)
 
-            return TootRecord(toot_id=status["id"], text=text)
+            return [TootRecord({"toot_id": status["id"], "text": text})]
 
         except mastodon.MastodonError as e:
-            return self.handle_error((f"Bot {self.bot_name} encountered an error when "
+            return [self.handle_error((f"Bot {self.bot_name} encountered an error when "
                                       f"sending post {text} without media:\n{e}\n"),
-                                     e)
+                                     e)]
 
+    # TODO this dupes code in output_birdsite, figure out how to not do that
     def send_with_media(self, text: str, files: List[str], captions: List[str] = None
                         ) -> OutputRecord:
         """Upload media to mastodon, and send status and media, and captions if present."""
+        # check if we need to split media between multiple messages
+        # put text just on first message
+        records = []
+        if len(files) > BIRDSITE_MAX_MEDIA:
+            in_reply_to = None
+            iterations = len(files) // MASTODON_MAX_MEDIA)
+            leftovers = len(files) % MASTODON_MAX_MEDIA
+
+            for i in range(iterations):
+                start = (i-1) * MASTODON_MAX_MEDIA
+                end = i * MASTODON_MAX_MEDIA
+                file_slice = files[start:end]
+                caption_slice = captions[start:end]
+
+                if in_reply_to is None:
+                    txt = text
+                else:
+                    txt = None
+
+                record = self.send_with_media_helper(text=txt,
+                                                     files=file_slice,
+                                                     captions=caption_slice,
+                                                     in_reply_to=in_reply_to)
+
+                in_reply_to = record.tweet_id
+                records += record
+
+            # get leftovers
+            if leftovers > 0:
+                start = len(files) - leftovers
+                file_slice = files[start:]
+                caption_slice = captions[start:]
+
+                record = self.send_with_media_helper(text=txt,
+                                                     files=file_slice,
+                                                     captions=caption_slice,
+                                                     in_reply_to=in_reply_to)
+                records += record
+
+            return records
+
+        else:
+            return [self.send_with_media_helper(text=text, files=files, captions=captions,
+                                        in_reply_to=None)]
+
+
+    def send_with_media_helper(self,
+                               text: str,
+                               files: List[str],
+                               captions: List[str]=None,
+                               in_reply_to=None
+                               ) -> OutputRecord
         try:
             self.ldebug(f"Uploading files {files}.")
             if captions is not None:
@@ -70,10 +127,14 @@ class MastodonSkeleton(OutputSkeleton):
             )
 
         try:
-            status = self.api.status_post(status=text, media_ids=media_dicts)
+            status = self.api.status_post(status=text,
+                                          media_ids=media_dicts,
+                                          in_reply_to_id=in_reply_to)
             self.ldebug(f"Status object from toot: {status}.")
-            return TootRecord(toot_id=status["id"], text=text, media_ids=media_dicts,
-                              captions=captions)
+            return TootRecord({"toot_id": status["id"],
+                               "text": text,
+                               "media_ids": media_dicts,
+                               "captions": :captions})
 
         except mastodon.MastodonError as e:
             return self.handle_error((f"Bot {self.bot_name} encountered an error when "
@@ -100,22 +161,22 @@ class MastodonSkeleton(OutputSkeleton):
         except Exception:
             pass
 
-        return TootRecord(error=e)
+        return TootRecord({"error": e})
 
 
 class TootRecord(OutputRecord):
-    def __init__(self, toot_id: str = None, text: str = None, files: List[str] = None,
-                 media_ids: List[int] = [], error: mastodon.MastodonError = None,
-                 captions: Optional[List[str]]=None
-                 ) -> None:
+    def __init__(self, record_data: Dict[str, Any]={}) -> None:
         """Create toot record object."""
         super().__init__()
         self._type = self.__class__.__name__
-        self.toot_id = toot_id
-        self.text = text
-        self.files = files
-        self.media_ids = media_ids
-        self.captions = captions
+        self.toot_id = record_data.get("toot_id", None)
+        self.text = record_data.get("text", None)
+        self.files = record_data.get("files", None)
+        self.media_ids = record_data.get("media_ids", [])
+        self.captions = record_data.get("captions", [])
+        self.in_reply_to = record_data.get("in_reply_to", None)
+
+        self.error = record_data.get("error", None)
 
         if error is not None:
             # So Python doesn't get upset when we try to json-dump the record later.
