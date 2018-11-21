@@ -21,6 +21,9 @@ class BirdsiteSkeleton(OutputSkeleton):
             187: self.default_duplicate_handler,
         }
 
+    ###############################################################################################
+    ####        OUTPUT SPEC METHODS                                                            ####
+    ###############################################################################################
     def cred_init(self, secrets_dir: str, log: Logger, bot_name: str="") -> None:
         """Initialize what requires credentials/secret files."""
         super().__init__(secrets_dir, log, bot_name)
@@ -68,9 +71,17 @@ class BirdsiteSkeleton(OutputSkeleton):
                  f"sending post {text} without media:\n{e}\n"),
                 e)]
 
-    def send_with_media(self, text: str, files: List[str], captions: List[str]=None
+    def send_with_media(self,
+                        *,
+                        text: str,
+                        files: List[str],
+                        captions: List[str]
                         ) -> OutputRecord:
         """Upload media to birdsite, and send status and media, and captions if present."""
+        # Guarantee captions and files are of the same length.
+        if len(captions) < len(files):
+            captions += [""] * (len(files) - len(captions))
+
         # check if we need to split media between multiple tweets
         # put text just on first message
         records = []
@@ -116,8 +127,17 @@ class BirdsiteSkeleton(OutputSkeleton):
             return [self.send_with_media_helper(text=text, files=files, captions=captions,
                                         in_reply_to=None)]
 
-    def send_with_media_helper(self, text: str, files: List[str], captions: List[str]=None,
-                               in_reply_to=None) -> OutputRecord:
+
+    ###############################################################################################
+    ####        OTHER METHODS                                                                  ####
+    ###############################################################################################
+    def send_with_media_helper(self,
+                               *,
+                               text: str,
+                               files: List[str],
+                               captions: List[str],
+                               in_reply_to=None
+                               ) -> OutputRecord:
         """Upload one set of media to birdsite, possibly in response to another tweet."""
         # upload media
         media_ids = None
@@ -190,20 +210,22 @@ class BirdsiteSkeleton(OutputSkeleton):
     def set_duplicate_handler(self, duplicate_handler: Callable[..., None]) -> None:
         self.handled_errors[187] = duplicate_handler
 
-    def handle_caption_upload(self, media_ids: List[str], captions: Optional[List[str]]) -> None:
+    def handle_caption_upload(self,
+                              *,
+                              media_ids: List[str],
+                              captions: List[str]
+                              ) -> None:
         """Handle uploading all captions."""
-        if captions is None:
-            return
-
-        if len(media_ids) > len(captions):
-            captions.extend([""] * (len(media_ids) - len(captions)))
-
         for i, media_id in enumerate(media_ids):
             caption = captions[i]
             self.upload_caption(media_id=media_id, caption=caption)
 
     # taken from https://github.com/tweepy/tweepy/issues/716#issuecomment-398844271
-    def upload_caption(self, media_id: str, caption: str) -> Any:
+    def upload_caption(self,
+                       *,
+                       media_id: str,
+                       caption: str
+                       ) -> Any:
         post_data = {
             "media_id": media_id,
             "alt_text": {
@@ -218,7 +240,7 @@ class BirdsiteSkeleton(OutputSkeleton):
                                       )(post_data=json.dumps(post_data))
 
 class TweetRecord(OutputRecord):
-    def __init__(self, record_data: Dict[str, Any]={}) -> None:
+    def __init__(self, record_data: Dict[str, Any]) -> None:
         """Create tweet record object."""
         super().__init__()
         self._type = self.__class__.__name__

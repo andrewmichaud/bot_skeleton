@@ -19,7 +19,10 @@ from .error import BotSkeletonException
 # Record of one round of media uploads.
 class IterationRecord:
     """Record of one iteration. Includes records of all outputs."""
-    def __init__(self, extra_keys: Dict[str, Any]={}) -> None:
+    def __init__(self,
+                 *,
+                 extra_keys: Dict[str, Any]={}
+                 ) -> None:
         self._version = pkg_resources.require(__package__)[0].version
         self._type = self.__class__.__name__
         self.timestamp = datetime.now().isoformat()
@@ -46,8 +49,13 @@ class IterationRecord:
 
 # Main class - handles sending and history management and such.
 class BotSkeleton():
-    def __init__(self, secrets_dir:str=None, log_filename:str=None, history_filename:str=None,
-                 bot_name:str="A bot", delay:int=3600) -> None:
+    def __init__(self,
+                 *,
+                 secrets_dir:str=None,
+                 log_filename:str=None,
+                 history_filename:str=None,
+                 bot_name:str="A bot",
+                 delay:int=3600) -> None:
         """Set up generic skeleton stuff."""
 
         if secrets_dir is None:
@@ -58,14 +66,14 @@ class BotSkeleton():
         self.bot_name = bot_name
         self.delay = delay
 
-        if log_filename is None:
-            log_filename = path.join(self.secrets_dir, "log")
         self.log_filename = log_filename
+        if self.log_filename is None:
+            self.log_filename = path.join(self.secrets_dir, "log")
         self.log = util.set_up_logging(log_filename=self.log_filename)
 
-        if history_filename is None:
-            history_filename = path.join(self.secrets_dir, f"{self.bot_name}-history.json")
         self.history_filename = history_filename
+        if self.history_filename is None:
+            self.history_filename = path.join(self.secrets_dir, f"{self.bot_name}-history.json")
 
         self.extra_keys: Dict[str, Any] = {}
         self.history = self.load_history()

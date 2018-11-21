@@ -9,14 +9,15 @@ import mastodon
 from .output_utils import OutputRecord, OutputSkeleton
 
 
-MASTODON_MAX_MEDIA = 4
-
-
 class MastodonSkeleton(OutputSkeleton):
     def __init__(self) -> None:
         """Set up mastodon skeleton stuff."""
         self.name = "MASTODON"
+        self.max_media_per_post = 4
 
+    ###############################################################################################
+    ####        OUTPUT SPEC METHODS                                                            ####
+    ###############################################################################################
     def cred_init(self, secrets_dir: str, log: Logger, bot_name: str="") -> None:
         """Initialize what requires credentials/secret files."""
         super().__init__(secrets_dir, log, bot_name)
@@ -51,29 +52,32 @@ class MastodonSkeleton(OutputSkeleton):
                                      e)]
 
     # TODO this dupes code in output_birdsite, figure out how to not do that
-    def send_with_media(self, text: str, files: List[str], captions: List[str] = None
+    def send_with_media(self,
+                        *,
+                        text: str,
+                        files: List[str],
+                        captions: List[str]
                         ) -> OutputRecord:
         """Upload media to mastodon, and send status and media, and captions if present."""
         # check if we need to split media between multiple messages
-        # put text just on first message
-        records = []
-        if len(files) > BIRDSITE_MAX_MEDIA:
+        if len(files) > self.max_media_per_post:
+            records = []
             in_reply_to = None
-            iterations = len(files) // MASTODON_MAX_MEDIA)
-            leftovers = len(files) % MASTODON_MAX_MEDIA
+            iterations = len(files) // self.max_media_per_post)
+            leftovers = len(files) % self.max_media_per_post
 
             for i in range(iterations):
-                start = (i-1) * MASTODON_MAX_MEDIA
-                end = i * MASTODON_MAX_MEDIA
+                start = (i-1) * self.max_media_per_post
+                end = i * self.max_media_per_post
                 file_slice = files[start:end]
                 caption_slice = captions[start:end]
 
-                if in_reply_to is None:
-                    txt = text
-                else:
-                    txt = None
+                # put text just on first message
+                message = None
+                if i == 0:
+                    message = text
 
-                record = self.send_with_media_helper(text=txt,
+                record = self.send_with_media_helper(text=message,
                                                      files=file_slice,
                                                      captions=caption_slice,
                                                      in_reply_to=in_reply_to)
@@ -87,7 +91,7 @@ class MastodonSkeleton(OutputSkeleton):
                 file_slice = files[start:]
                 caption_slice = captions[start:]
 
-                record = self.send_with_media_helper(text=txt,
+                record = self.send_with_media_helper(text=message,
                                                      files=file_slice,
                                                      captions=caption_slice,
                                                      in_reply_to=in_reply_to)
@@ -96,11 +100,17 @@ class MastodonSkeleton(OutputSkeleton):
             return records
 
         else:
-            return [self.send_with_media_helper(text=text, files=files, captions=captions,
-                                        in_reply_to=None)]
+            return [self.send_with_media_helper(text=text,
+                                                files=files,
+                                                captions=captions,
+                                                in_reply_to=None)]
 
 
+    ###############################################################################################
+    ####        OTHER METHODS                                                                  ####
+    ###############################################################################################
     def send_with_media_helper(self,
+                               *,
                                text: str,
                                files: List[str],
                                captions: List[str]=None,

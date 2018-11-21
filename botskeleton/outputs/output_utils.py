@@ -15,7 +15,7 @@ class OutputSkeleton:
         # Output skeletons must implement these.
         self.cred_init: Callable[[str, Logger, str], None]
         self.send: Callable[[str], OutputRecord]
-        self.send_with_media: Callable[[str, List[str], List[str]], OutputRecord]
+        self.send_with_media: Callable[[*, str, List[str], List[str]], OutputRecord]
 
     def linfo(self, message: str) -> None:
         """Wrapped debug log with prefix key."""
