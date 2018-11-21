@@ -50,8 +50,8 @@ class IterationRecord:
 # Main class - handles sending and history management and such.
 class BotSkeleton():
     def __init__(self,
-                 *,
                  secrets_dir:str=None,
+                 *,
                  log_filename:str=None,
                  history_filename:str=None,
                  bot_name:str="A bot",
@@ -120,7 +120,8 @@ class BotSkeleton():
             if output["active"]:
                 self.log.info(f"Output {key} is active, calling media send on it.")
                 entry: Any = output["obj"]
-                output_result = entry.send_with_media(text, files=[filename],
+                output_result = entry.send_with_media(text,
+                                                      files=[filename],
                                                       captions=[caption])
                 record.output_records[key] = output_result
             else:
@@ -139,7 +140,8 @@ class BotSkeleton():
             if output["active"]:
                 self.log.info(f"Output {key} is active, calling media send on it.")
                 entry: Any = output["obj"]
-                output_result = entry.send_with_media(text=text, files=list(filenames),
+                output_result = entry.send_with_media(text=text,
+                                                      files=list(filenames),
                                                       captions=captions)
                 record.output_records[key] = output_result
             else:
@@ -182,7 +184,7 @@ class BotSkeleton():
             open(self.history_filename, "a+").close()
 
         with open(self.history_filename, "w") as f:
-            json.dump(jsons, f, default=lambda x: x.__dict__().copy(), sort_keys=True, indent=4)
+            json.dump(jsons, f, default=lambda x: x.__dict__.copy(), sort_keys=True, indent=4)
             f.write("\n") # add trailing new line dump skips.
 
     def load_history(self) -> List["IterationRecord"]:
@@ -266,7 +268,7 @@ class BotSkeleton():
         """Parse output records into dicts ready for JSON."""
         output_records = {}
         for key, sub_item in item.output_records.items():
-            if isinstance(sub_item, dict):
+            if isinstance(sub_item, dict) or isinstance(sub_item, list):
                 output_records[key] = sub_item
             else:
                 output_records[key] = sub_item.__dict__

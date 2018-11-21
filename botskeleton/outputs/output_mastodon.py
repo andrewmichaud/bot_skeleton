@@ -2,7 +2,7 @@
 import json
 from logging import Logger
 from os import path
-from typing import List, Optional
+from typing import Any, List, Dict
 
 import mastodon
 
@@ -51,59 +51,16 @@ class MastodonSkeleton(OutputSkeleton):
                                       f"sending post {text} without media:\n{e}\n"),
                                      e)]
 
-    # TODO this dupes code in output_birdsite, figure out how to not do that
     def send_with_media(self,
                         *,
                         text: str,
                         files: List[str],
-                        captions: List[str]
+                        captions: List[str],
                         ) -> OutputRecord:
         """Upload media to mastodon, and send status and media, and captions if present."""
-        # check if we need to split media between multiple messages
-        if len(files) > self.max_media_per_post:
-            records = []
-            in_reply_to = None
-            iterations = len(files) // self.max_media_per_post)
-            leftovers = len(files) % self.max_media_per_post
-
-            for i in range(iterations):
-                start = (i-1) * self.max_media_per_post
-                end = i * self.max_media_per_post
-                file_slice = files[start:end]
-                caption_slice = captions[start:end]
-
-                # put text just on first message
-                message = None
-                if i == 0:
-                    message = text
-
-                record = self.send_with_media_helper(text=message,
-                                                     files=file_slice,
-                                                     captions=caption_slice,
-                                                     in_reply_to=in_reply_to)
-
-                in_reply_to = record.tweet_id
-                records += record
-
-            # get leftovers
-            if leftovers > 0:
-                start = len(files) - leftovers
-                file_slice = files[start:]
-                caption_slice = captions[start:]
-
-                record = self.send_with_media_helper(text=message,
-                                                     files=file_slice,
-                                                     captions=caption_slice,
-                                                     in_reply_to=in_reply_to)
-                records += record
-
-            return records
-
-        else:
-            return [self.send_with_media_helper(text=text,
-                                                files=files,
-                                                captions=captions,
-                                                in_reply_to=None)]
+        return self.send_with_media_generic(text=text,
+                                            files=files,
+                                            captions=captions)
 
 
     ###############################################################################################
@@ -113,21 +70,17 @@ class MastodonSkeleton(OutputSkeleton):
                                *,
                                text: str,
                                files: List[str],
-                               captions: List[str]=None,
-                               in_reply_to=None
-                               ) -> OutputRecord
+                               captions: List[str],
+                               in_reply_to=None,
+                               ) -> OutputRecord:
+        """Upload one set of media to mastodon, possibly in response to another post."""
         try:
             self.ldebug(f"Uploading files {files}.")
-            if captions is not None:
-                if len(files) > len(captions):
-                    captions.extend([""] * (len(files) - len(captions)))
 
-                media_dicts = []
-                for i, file in enumerate(files):
-                    caption = captions[i]
-                    media_dicts.append(self.api.media_post(file, description=caption))
-            else:
-                media_dicts = [self.api.media_post(file) for file in files]
+            media_dicts = []
+            for i, file in enumerate(files):
+                caption = captions[i]
+                media_dicts.append(self.api.media_post(file, description=caption))
 
             self.ldebug(f"Media ids {media_dicts}")
 
@@ -144,7 +97,7 @@ class MastodonSkeleton(OutputSkeleton):
             return TootRecord({"toot_id": status["id"],
                                "text": text,
                                "media_ids": media_dicts,
-                               "captions": :captions})
+                               "captions": captions})
 
         except mastodon.MastodonError as e:
             return self.handle_error((f"Bot {self.bot_name} encountered an error when "
@@ -186,17 +139,11 @@ class TootRecord(OutputRecord):
         self.captions = record_data.get("captions", [])
         self.in_reply_to = record_data.get("in_reply_to", None)
 
+        # need generic id for generic method purposes
+        self.id = self.toot_id
+
         self.error = record_data.get("error", None)
 
-        if error is not None:
+        if self.error is not None:
             # So Python doesn't get upset when we try to json-dump the record later.
-            self.error = json.dumps(error.__dict__)
-            try:
-                if isinstance(error.message, str):
-                    self.error_message = error.message
-                elif isinstance(error.message, list):
-                    self.error_code = error.message[0]["code"]
-                    self.error_message = error.message[0]["message"]
-            except AttributeError:
-                # fine, I didn't want it anyways.
-                pass
+            self.error = self.error.__dict__
