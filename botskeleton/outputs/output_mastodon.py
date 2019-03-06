@@ -2,7 +2,7 @@
 import json
 from logging import Logger
 from os import path
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 import mastodon
 
@@ -39,7 +39,10 @@ class MastodonSkeleton(OutputSkeleton):
         try:
             status = self.api.status_post(status=text)
 
-            return TootRecord(toot_id=status["id"], text=text)
+            return TootRecord(record_data={
+                "toot_id": status["id"],
+                "text": text
+            })
 
         except mastodon.MastodonError as e:
             return self.handle_error((f"Bot {self.bot_name} encountered an error when "
@@ -72,8 +75,12 @@ class MastodonSkeleton(OutputSkeleton):
         try:
             status = self.api.status_post(status=text, media_ids=media_dicts)
             self.ldebug(f"Status object from toot: {status}.")
-            return TootRecord(toot_id=status["id"], text=text, media_ids=media_dicts,
-                              captions=captions)
+            return TootRecord(record_data={
+                "toot_id": status["id"],
+                "text": text,
+                "media_ids": media_dicts,
+                "captions": captions
+            })
 
         except mastodon.MastodonError as e:
             return self.handle_error((f"Bot {self.bot_name} encountered an error when "
@@ -104,18 +111,18 @@ class MastodonSkeleton(OutputSkeleton):
 
 
 class TootRecord(OutputRecord):
-    def __init__(self, toot_id: str = None, text: str = None, files: List[str] = None,
-                 media_ids: List[int] = [], error: mastodon.MastodonError = None,
-                 captions: Optional[List[str]]=None
+    def __init__(self,
+                 record_data: Dict[str, Any]={},
+                 error: mastodon.MastodonError = None,
                  ) -> None:
         """Create toot record object."""
         super().__init__()
         self._type = self.__class__.__name__
-        self.toot_id = toot_id
-        self.text = text
-        self.files = files
-        self.media_ids = media_ids
-        self.captions = captions
+        self.toot_id = record_data.get("toot_id", "")
+        self.text = record_data.get("text", "")
+        self.files = record_data.get("files", [])
+        self.media_ids = record_data.get("media_ids", [])
+        self.captions = record_data.get("captions", [])
 
         if error is not None:
             # So Python doesn't get upset when we try to json-dump the record later.

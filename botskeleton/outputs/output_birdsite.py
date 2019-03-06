@@ -2,7 +2,7 @@
 import json
 from logging import Logger
 from os import path
-from typing import Any, Callable, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 import tweepy
 
@@ -57,7 +57,7 @@ class BirdsiteSkeleton(OutputSkeleton):
         try:
             status = self.api.update_status(text)
             self.ldebug(f"Status object from tweet: {status}.")
-            return TweetRecord(tweet_id=status._json["id"], text=text)
+            return TweetRecord(record_data={"tweet_id": status._json["id"], "text": text})
 
         except tweepy.TweepError as e:
             return self.handle_error(
@@ -86,8 +86,13 @@ class BirdsiteSkeleton(OutputSkeleton):
         try:
             status = self.api.update_status(status=text, media_ids=media_ids)
             self.ldebug(f"Status object from tweet: {status}.")
-            return TweetRecord(tweet_id=status._json["id"], text=text, media_ids=media_ids,
-                               captions=captions, files=files)
+            return TweetRecord(record_data={
+                "tweet_id": status._json["id"],
+                "text": text,
+                "media_ids": media_ids,
+                "captions": captions,
+                "files": files
+            })
 
         except tweepy.TweepError as e:
             return self.handle_error(
@@ -160,18 +165,16 @@ class BirdsiteSkeleton(OutputSkeleton):
                                       )(post_data=json.dumps(post_data))
 
 class TweetRecord(OutputRecord):
-    def __init__(self, tweet_id: str=None, text: str=None, files: List[str]=[],
-                 media_ids: List[str]=[], captions: Optional[List[str]]=[],
-                 error: tweepy.TweepError=None
-                 ) -> None:
+    def __init__(self, record_data: Dict[str, Any]={}, error: tweepy.TweepError=None) -> None:
         """Create tweet record object."""
         super().__init__()
         self._type = self.__class__.__name__
-        self.tweet_id = tweet_id
-        self.text = text
-        self.files = files
-        self.media_ids = media_ids
-        self.captions = captions
+        self.tweet_id = record_data.get("tweet_id", None)
+        self.id = self.tweet_id
+        self.text = record_data.get("text", None)
+        self.files = record_data.get("files", [])
+        self.media_ids = record_data.get("media_ids", [])
+        self.captions = record_data.get("captions", [])
         self.timestamp = record_data.get("timestamp", None)
         self.in_reply_to = record_data.get("in_reply_to", None)
 

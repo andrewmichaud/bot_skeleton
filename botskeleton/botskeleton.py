@@ -34,7 +34,7 @@ class IterationRecord:
         """repr object"""
         return str(self)
 
-    def __eq__(self, other) -> bool:
+    def __eq__(self, other:Any) -> bool:
         """Equality"""
         if isinstance(other, IterationRecord):
             for key, value in self.__dict__.items():
