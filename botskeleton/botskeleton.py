@@ -317,7 +317,7 @@ def _repair(record: Dict[str, Any]) -> Dict[str, Any]:
             # Lift extra keys, just in case.
             if "extra_keys" in birdsite_record:
                 record_extra_values = record.get("extra_keys", {})
-                for key, value in birdsite_record["extra_keys"]:
+                for key, value in birdsite_record["extra_keys"].items():
                     if key not in record_extra_values:
                         record_extra_values[key] = value
 

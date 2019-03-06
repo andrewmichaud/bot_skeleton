@@ -1,3 +1,8 @@
+3.1.3 (2019-03-06):
+bugfix
+* BUGFIX
+    * _repair method would not handle extra keys correctly and would fail out.
+
 3.1.2 (2019-03-05):
 Dependency Updates
 * DEV
