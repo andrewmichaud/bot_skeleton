@@ -1,7 +1,8 @@
-3.2.0 (2018-11-24):
-Image Wrapping
-* FEATURES
-    * When posting more than four images, wrap on multiple threaded posts on birdsite/mastodon.
+3.1.1 (2019-03-05):
+Dependency Updates
+* DEV
+    * Pin new dependencies.
+    * Get fix from drewtilities.
 
 3.1.0 (2018-09-23):
 Various
