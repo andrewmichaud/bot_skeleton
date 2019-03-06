@@ -44,10 +44,17 @@ class OutputRecord:
         """repr object"""
         return str(self)
 
+    def __eq__(self, other):
+        """Overrides the default implementation"""
+        if isinstance(other, OutputRecord):
+            for key, value in self.__dict__.items():
+                if value != other.__dict__[key]:
+                    return False
+
+                return True
+        return False
+
     @classmethod
     def from_dict(cls, obj_dict: Dict[str, Any]) -> "OutputRecord":
         """Get object back from dict."""
-        obj = cls()
-        for key, item in obj_dict.items():
-            obj.__dict__[key] = item
-        return obj
+        return cls(obj_dict)

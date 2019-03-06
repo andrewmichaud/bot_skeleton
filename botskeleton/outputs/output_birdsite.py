@@ -172,6 +172,8 @@ class TweetRecord(OutputRecord):
         self.files = files
         self.media_ids = media_ids
         self.captions = captions
+        self.timestamp = record_data.get("timestamp", None)
+        self.in_reply_to = record_data.get("in_reply_to", None)
 
         if error is not None:
             # So Python doesn't get upset when we try to json-dump the record later.

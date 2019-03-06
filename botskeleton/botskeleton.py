@@ -34,6 +34,16 @@ class IterationRecord:
         """repr object"""
         return str(self)
 
+    def __eq__(self, other) -> bool:
+        """Equality"""
+        if isinstance(other, IterationRecord):
+            for key, value in self.__dict__.items():
+                if value != other.__dict__[key]:
+                    return False
+
+                return True
+        return False
+
     @classmethod
     def from_dict(cls, obj_dict: Dict[str, Any]) -> "IterationRecord":
         """Get object back from dict."""

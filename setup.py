@@ -6,14 +6,14 @@ HERE = path.abspath(path.dirname(__file__))
 
 INSTALL_REQUIRES = [
     "clint>=0.5.1, <0.6.0",
-    "drewtilities>=1.0.5, <2.0.0",
-    "tweepy>=3.6, <4.0",
+    "drewtilities>=1.2.1, <2.0.0",
+    "tweepy>=3.7, <4.0",
     "Mastodon.py>=1.3.1, <2.0",
 ]
 
 TESTS_REQUIRE = [
-    "coveralls>=1.5.0, <2.0.0",
-    "pytest>=3.8.0, <4.0.0",
+    "coveralls>=1.6.0, <2.0.0",
+    "pytest>=4.3.0, <5.0.0",
 ]
 
 SETUP_REQUIRES = [
@@ -60,6 +60,6 @@ setup(author="Andrew Michaud",
       description="A skeleton for content bots.",
       long_description=LONG_DESCRIPTION,
 
-      url="https://github.com/andrewmichaud/bot_skeleton",
+      url="https://github.com/alixnovosi/bot_skeleton",
 
       version=VERSION)

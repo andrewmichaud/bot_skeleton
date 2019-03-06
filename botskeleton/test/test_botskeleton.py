@@ -63,8 +63,7 @@ def test_convert_legacy_history(testdir: str, legacyhist: str, hoistedhist: str,
     assert len(bs.history) == len(mbs.history)
     for i, elem in enumerate(bs.history):
         melem = mbs.history[i]
-        for key, item in elem.__dict__.items():
-            assert str(item) == str(melem.__dict__[key])
+        assert elem == melem
 
 
 # regression test for the history corruption snafu.
