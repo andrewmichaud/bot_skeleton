@@ -57,4 +57,8 @@ class OutputRecord:
     @classmethod
     def from_dict(cls, obj_dict: Dict[str, Any]) -> "OutputRecord":
         """Get object back from dict."""
-        return cls()
+        obj = cls()
+        for key, item in obj_dict.items():
+            obj.__dict__[key] = item
+
+        return obj
