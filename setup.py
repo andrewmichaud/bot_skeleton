@@ -6,7 +6,7 @@ HERE = path.abspath(path.dirname(__file__))
 
 INSTALL_REQUIRES = [
     "clint>=0.5.1, <0.6.0",
-    "drewtilities>=1.2.1, <2.0.0",
+    "drewtilities>=1.2.2, <2.0.0",
     "tweepy>=3.7, <4.0",
     "Mastodon.py>=1.3.1, <2.0",
 ]
