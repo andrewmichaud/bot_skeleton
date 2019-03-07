@@ -1,3 +1,28 @@
+3.2.0 (2019-03-07):
+batch reply functionality
+* FEATURES
+    * Can now reply in batch to a target user with perform_batch_reply().
+    * You need to supply a callback,
+    and a target per service,
+    and optionally some other fields,
+    and the callback will be used to reply to a number of their recent tweets (number configurable)
+
+* BUGFIXES
+    * Permit writing lists as JSON from IterationRecord,
+    needed to support lists of OutputRecord.
+    * Make _repair a little more robust,
+    and have it assume less.
+    * Don't try to _repair legacy tweet records,
+    this is the wrong behavior and I'm not sure what would happen.
+
+* DEV
+    * Make all API methods prefer keyword arguments,
+    though positional arguments will still be allowed.
+    * All internal methods now use only keyword arguments (or at least most do).
+    * Use verbose docstrings that can be formatted as documentation,
+    and eventually I'll do that.
+    * Expect python3.7 support and update travisCI config appropriately.
+
 3.1.3 (2019-03-06):
 bugfix
 * BUGFIX
