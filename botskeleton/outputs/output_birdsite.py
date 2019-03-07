@@ -35,7 +35,7 @@ class BirdsiteSkeleton(OutputSkeleton):
             used for various kinds of labelling.
         :returns: none.
         """
-        super().__init__(secrets_dir, log, bot_name)
+        super().__init__(secrets_dir=secrets_dir, log=log, bot_name=bot_name)
 
         self.ldebug("Retrieving CONSUMER_KEY...")
         with open(path.join(self.secrets_dir, "CONSUMER_KEY")) as f:
@@ -185,6 +185,8 @@ class BirdsiteSkeleton(OutputSkeleton):
 
                 records.append(TweetRecord(record_data={
                     "tweet_id": new_status.id,
+                    "in_reply_to": target_handle,
+                    "in_reply_to_id": status_id,
                     "text": full_message,
                 }))
             else:
@@ -299,6 +301,7 @@ class TweetRecord(OutputRecord):
         self.captions = record_data.get("captions", [])
         self.timestamp = record_data.get("timestamp", None)
         self.in_reply_to = record_data.get("in_reply_to", None)
+        self.in_reply_to_id = record_data.get("in_reply_to_id", None)
 
         if error is not None:
             # So Python doesn't get upset when we try to json-dump the record later.

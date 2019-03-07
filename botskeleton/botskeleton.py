@@ -350,7 +350,7 @@ class BotSkeleton():
             open(self.history_filename, "a+").close()
 
         with open(self.history_filename, "w") as f:
-            json.dump(jsons, f, default=lambda x: x.__dict__().copy(), sort_keys=True, indent=4)
+            json.dump(jsons, f, default=lambda x: x.__dict__.copy(), sort_keys=True, indent=4)
             f.write("\n") # add trailing new line dump skips.
 
     def load_history(self) -> List["IterationRecord"]:

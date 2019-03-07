@@ -1,5 +1,6 @@
 """Skeleton code for sending to mastodon."""
 import json
+import re
 from logging import Logger
 from os import path
 from typing import Any, Callable, Dict, List, Optional
@@ -21,7 +22,7 @@ class MastodonSkeleton(OutputSkeleton):
             bot_name: str="",
     ) -> None:
         """Initialize what requires credentials/secret files."""
-        super().__init__(secrets_dir, log, bot_name)
+        super().__init__(secrets_dir=secrets_dir, log=log, bot_name=bot_name)
 
         self.ldebug("Retrieving ACCESS_TOKEN ...")
         with open(path.join(self.secrets_dir, "ACCESS_TOKEN")) as f:
@@ -39,6 +40,7 @@ class MastodonSkeleton(OutputSkeleton):
 
         self.api = mastodon.Mastodon(access_token=ACCESS_TOKEN,
                                      api_base_url=self.instance_base_url)
+        self.html_re = re.compile("<.*?>")
 
     def send(
             self,
@@ -148,24 +150,36 @@ class MastodonSkeleton(OutputSkeleton):
         self.log.info(f"Attempting to batch reply to mastodon user {target_handle}")
 
         records: List[OutputRecord] = []
-        statuses = self.api.user_timeline(screen_name=target_handle, count=lookback_limit)
+        # TODO bad
+        our_id = self.api.account_verify_credentials()["id"]
+        their_id = self.api.account_search(target_handle, limit=1)[0]
+        statuses = self.api.account_statuses(their_id, limit=lookback_limit)
         for status in statuses:
 
             status_id = status.id
+            text = re.sub(self.html_re, "", status.content)
             # find possible replies we've made.
-            our_statuses = self.api.user_timeline(since_id=status_id)
-            in_reply_to_ids = list(map(lambda x: x.in_reply_to_status_id, our_statuses))
+            our_statuses = self.api.account_statuses(our_id, since_id=status_id)
+            in_reply_to_ids = list(map(lambda x: x.in_reply_to_id, our_statuses))
             if status_id not in in_reply_to_ids:
-                message = callback(message_id=status_id, message=status.text, extra_keys={})
-
-                full_message = f"@{target_handle} {message}"
+                message = callback(message_id=status_id, message=text, extra_keys={})
                 self.log.info(f"Replying {message} to status {status_id} from {target_handle}.")
-                new_status = self.api.update_status(full_message, in_reply_to_status_id=status_id)
+                try:
+                    new_status = self.api.status_post(status=message, in_reply_to_id=status_id)
 
-                records.append(TootRecord(record_data={
-                    "tweet_id": new_status.id,
-                    "text": full_message,
-                }))
+                    records.append(TootRecord(record_data={
+                        "toot_id": new_status.id,
+                        "in_reply_to": target_handle,
+                        "in_reply_to_id": status_id,
+                        "text": message,
+                    }))
+
+                except mastodon.MastodonError as e:
+                    records.append(
+                        self.handle_error((f"Bot {self.bot_name} encountered an error when "
+                                           f"sending post {message} during a batch reply "
+                                           f":\n{e}\n"),
+                                          e))
             else:
                 self.log.info(f"Not replying to status {status_id} from {target_handle} "
                               f"- we already replied.")
@@ -211,10 +225,13 @@ class TootRecord(OutputRecord):
         super().__init__()
         self._type = self.__class__.__name__
         self.toot_id = record_data.get("toot_id", "")
+        self.id = self.toot_id
         self.text = record_data.get("text", "")
         self.files = record_data.get("files", [])
         self.media_ids = record_data.get("media_ids", [])
         self.captions = record_data.get("captions", [])
+        self.in_reply_to = record_data.get("in_reply_to", None)
+        self.in_reply_to_id = record_data.get("in_reply_to_id", None)
 
         if error is not None:
             # So Python doesn't get upset when we try to json-dump the record later.
