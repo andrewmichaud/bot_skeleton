@@ -2,7 +2,7 @@
 import json
 from logging import Logger
 from os import path
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import tweepy
 
@@ -18,8 +18,23 @@ class BirdsiteSkeleton(OutputSkeleton):
             187: self.default_duplicate_handler,
         }
 
-    def cred_init(self, secrets_dir: str, log: Logger, bot_name: str="") -> None:
-        """Initialize what requires credentials/secret files."""
+    ## API implementation methods.
+    def cred_init(
+            self,
+            *,
+            secrets_dir: str,
+            log: Logger,
+            bot_name: str,
+    ) -> None:
+        """
+        Initialize what requires credentials/secret files.
+
+        :param secrets_dir: dir to expect credentials in and store logs/history in.
+        :param log: logger to use for log output.
+        :param bot_name: name of this bot,
+            used for various kinds of labelling.
+        :returns: none.
+        """
         super().__init__(secrets_dir, log, bot_name)
 
         self.ldebug("Retrieving CONSUMER_KEY...")
@@ -52,22 +67,49 @@ class BirdsiteSkeleton(OutputSkeleton):
 
         self.api = tweepy.API(self.auth)
 
-    def send(self, text: str) -> OutputRecord:
-        """Send birdsite message."""
+    def send(
+            self,
+            *,
+            text: str,
+    ) -> List[OutputRecord]:
+        """
+        Send birdsite message.
+
+        :param text: text to send in post.
+        :returns: list of output records,
+            each corresponding to either a single post,
+            or an error.
+        """
         try:
             status = self.api.update_status(text)
             self.ldebug(f"Status object from tweet: {status}.")
-            return TweetRecord(record_data={"tweet_id": status._json["id"], "text": text})
+            return [TweetRecord(record_data={"tweet_id": status._json["id"], "text": text})]
 
         except tweepy.TweepError as e:
-            return self.handle_error(
+            return [self.handle_error(
                 (f"Bot {self.bot_name} encountered an error when "
                  f"sending post {text} without media:\n{e}\n"),
-                e)
+                e)]
 
-    def send_with_media(self, text: str, files: List[str], captions: List[str]=None
-                        ) -> OutputRecord:
-        """Upload media to birdsite, and send status and media, and captions if present."""
+    def send_with_media(
+            self,
+            *,
+            text: str,
+            files: List[str],
+            captions: List[str]=None
+    ) -> List[OutputRecord]:
+        """
+        Upload media to birdsite,
+        and send status and media,
+        and captions if present.
+
+        :param text: tweet text.
+        :param files: list of files to upload with post.
+        :param captions: list of captions to include as alt-text with files.
+        :returns: list of output records,
+            each corresponding to either a single post,
+            or an error.
+        """
 
         # upload media
         media_ids = None
@@ -75,9 +117,9 @@ class BirdsiteSkeleton(OutputSkeleton):
             self.ldebug(f"Uploading files {files}.")
             media_ids = [self.api.media_upload(file).media_id_string for file in files]
         except tweepy.TweepError as e:
-            return self.handle_error(
+            return [self.handle_error(
                 f"Bot {self.bot_name} encountered an error when uploading {files}:\n{e}\n",
-                e)
+                e)]
 
         # apply captions, if present
         self.handle_caption_upload(media_ids, captions)
@@ -86,22 +128,79 @@ class BirdsiteSkeleton(OutputSkeleton):
         try:
             status = self.api.update_status(status=text, media_ids=media_ids)
             self.ldebug(f"Status object from tweet: {status}.")
-            return TweetRecord(record_data={
+            return [TweetRecord(record_data={
                 "tweet_id": status._json["id"],
                 "text": text,
                 "media_ids": media_ids,
                 "captions": captions,
                 "files": files
-            })
+            })]
 
         except tweepy.TweepError as e:
-            return self.handle_error(
+            return [self.handle_error(
                 (f"Bot {self.bot_name} encountered an error when "
                  f"sending post {text} with media ids {media_ids}:\n{e}\n"),
-                e)
+                e)]
 
+    def perform_batch_reply(
+            self,
+            *,
+            callback: Callable[..., str],
+            lookback_limit: int,
+            target_handle: str,
+    ) -> List[OutputRecord]:
+        """
+        Performs batch reply on target account.
+        Looks up the recent messages of the target user,
+        applies the callback,
+        and replies with
+        what the callback generates.
+
+        :param callback: a callback taking a message id,
+            message contents,
+            and optional extra keys,
+            and returning a message string.
+        :param target: the id of the target account.
+        :param lookback_limit: a lookback limit of how many messages to consider.
+        :returns: list of output records,
+            each corresponding to either a single post,
+            or an error.
+        """
+        self.log.info(f"Attempting to batch reply to birdsite user {target_handle}")
+
+        records: List[OutputRecord] = []
+        statuses = self.api.user_timeline(screen_name=target_handle, count=lookback_limit)
+        for status in statuses:
+
+            status_id = status.id
+            # find possible replies we've made.
+            our_statuses = self.api.user_timeline(since_id=status_id)
+            in_reply_to_ids = list(map(lambda x: x.in_reply_to_status_id, our_statuses))
+            if status_id not in in_reply_to_ids:
+                message = callback(message_id=status_id, message=status.text, extra_keys={})
+
+                full_message = f"@{target_handle} {message}"
+                self.log.info(f"Replying {message} to status {status_id} from {target_handle}.")
+                new_status = self.api.update_status(full_message, in_reply_to_status_id=status_id)
+
+                records.append(TweetRecord(record_data={
+                    "tweet_id": new_status.id,
+                    "text": full_message,
+                }))
+            else:
+                self.log.info(f"Not replying to status {status_id} from {target_handle} "
+                              f"- we already replied.")
+
+        return records
+
+    ## Helpful methods for this output.
     def send_dm_sos(self, message: str) -> None:
-        """Send DM to owner if something happens."""
+        """
+        Send DM to owner if something happens.
+
+        :param message: message to send to owner.
+        :returns: None.
+        """
         if self.owner_handle:
             try:
                 self.api.send_direct_message(user=self.owner_handle, text=message)
@@ -113,7 +212,13 @@ class BirdsiteSkeleton(OutputSkeleton):
             self.lerror("Can't send DM SOS, no owner handle.")
 
     def handle_error(self, message: str, e: tweepy.TweepError) -> OutputRecord:
-        """Handle error while trying to do something."""
+        """
+        Handle error while trying to do something.
+
+        :param message: message to send in DM regarding error.
+        :param e: tweepy error object.
+        :returns: OutputRecord containing an error.
+        """
         self.lerror(f"Got an error! {e}")
 
         # Handle errors if we know how.
@@ -138,7 +243,13 @@ class BirdsiteSkeleton(OutputSkeleton):
         self.handled_errors[187] = duplicate_handler
 
     def handle_caption_upload(self, media_ids: List[str], captions: Optional[List[str]]) -> None:
-        """Handle uploading all captions."""
+        """
+        Handle uploading all captions.
+
+        :param media_ids: media ids of uploads to attach captions to.
+        :param captions: captions to be attached to those media ids.
+        :returns: None.
+        """
         if captions is None:
             return
 
@@ -165,8 +276,19 @@ class BirdsiteSkeleton(OutputSkeleton):
                                       )(post_data=json.dumps(post_data))
 
 class TweetRecord(OutputRecord):
-    def __init__(self, record_data: Dict[str, Any]={}, error: tweepy.TweepError=None) -> None:
-        """Create tweet record object."""
+    def __init__(
+            self,
+            *,
+            record_data: Dict[str, Any]={},
+            error: tweepy.TweepError=None,
+    ) -> None:
+        """
+        Create tweet record object.
+
+        :param record_data: data to use to generate a TweetRecord.
+        :param error: error encountered while posting,
+            to generate a record with.
+        """
         super().__init__()
         self._type = self.__class__.__name__
         self.tweet_id = record_data.get("tweet_id", None)

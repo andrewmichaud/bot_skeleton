@@ -2,7 +2,7 @@
 import json
 from logging import Logger
 from os import path
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 import mastodon
 
@@ -13,7 +13,13 @@ class MastodonSkeleton(OutputSkeleton):
         """Set up mastodon skeleton stuff."""
         self.name = "MASTODON"
 
-    def cred_init(self, secrets_dir: str, log: Logger, bot_name: str="") -> None:
+    def cred_init(
+            self,
+            *,
+            secrets_dir: str,
+            log: Logger,
+            bot_name: str="",
+    ) -> None:
         """Initialize what requires credentials/secret files."""
         super().__init__(secrets_dir, log, bot_name)
 
@@ -34,24 +40,51 @@ class MastodonSkeleton(OutputSkeleton):
         self.api = mastodon.Mastodon(access_token=ACCESS_TOKEN,
                                      api_base_url=self.instance_base_url)
 
-    def send(self, text: str) -> OutputRecord:
-        """Send mastodon message."""
+    def send(
+            self,
+            *,
+            text: str,
+    ) -> List[OutputRecord]:
+        """
+        Send mastodon message.
+
+        :param text: text to send in post.
+        :returns: list of output records,
+            each corresponding to either a single post,
+            or an error.
+        """
         try:
             status = self.api.status_post(status=text)
 
-            return TootRecord(record_data={
+            return [TootRecord(record_data={
                 "toot_id": status["id"],
                 "text": text
-            })
+            })]
 
         except mastodon.MastodonError as e:
-            return self.handle_error((f"Bot {self.bot_name} encountered an error when "
+            return [self.handle_error((f"Bot {self.bot_name} encountered an error when "
                                       f"sending post {text} without media:\n{e}\n"),
-                                     e)
+                                     e)]
 
-    def send_with_media(self, text: str, files: List[str], captions: List[str] = None
-                        ) -> OutputRecord:
-        """Upload media to mastodon, and send status and media, and captions if present."""
+    def send_with_media(
+            self,
+            *,
+            text: str,
+            files: List[str],
+            captions: List[str] = None,
+    ) -> List[OutputRecord]:
+        """
+        Upload media to mastodon,
+        and send status and media,
+        and captions if present.
+
+        :param text: post text.
+        :param files: list of files to upload with post.
+        :param captions: list of captions to include as alt-text with files.
+        :returns: list of output records,
+            each corresponding to either a single post,
+            or an error.
+        """
         try:
             self.ldebug(f"Uploading files {files}.")
             if captions is not None:
@@ -68,25 +101,76 @@ class MastodonSkeleton(OutputSkeleton):
             self.ldebug(f"Media ids {media_dicts}")
 
         except mastodon.MastodonError as e:
-            return self.handle_error(
+            return [self.handle_error(
                 f"Bot {self.bot_name} encountered an error when uploading {files}:\n{e}\n", e
-            )
+            )]
 
         try:
             status = self.api.status_post(status=text, media_ids=media_dicts)
             self.ldebug(f"Status object from toot: {status}.")
-            return TootRecord(record_data={
+            return [TootRecord(record_data={
                 "toot_id": status["id"],
                 "text": text,
                 "media_ids": media_dicts,
                 "captions": captions
-            })
+            })]
 
         except mastodon.MastodonError as e:
-            return self.handle_error((f"Bot {self.bot_name} encountered an error when "
+            return [self.handle_error((f"Bot {self.bot_name} encountered an error when "
                                       f"sending post {text} with media dicts {media_dicts}:"
                                       f"\n{e}\n"),
-                                     e)
+                                     e)]
+
+    def perform_batch_reply(
+            self,
+            *,
+            callback: Callable[..., str],
+            lookback_limit: int,
+            target_handle: str,
+    ) -> List[OutputRecord]:
+        """
+        Performs batch reply on target account.
+        Looks up the recent messages of the target user,
+        applies the callback,
+        and replies with
+        what the callback generates.
+
+        :param callback: a callback taking a message id,
+            message contents,
+            and optional extra keys,
+            and returning a message string.
+        :param target: the id of the target account.
+        :param lookback_limit: a lookback limit of how many messages to consider.
+        :returns: list of output records,
+            each corresponding to either a single post,
+            or an error.
+        """
+        self.log.info(f"Attempting to batch reply to mastodon user {target_handle}")
+
+        records: List[OutputRecord] = []
+        statuses = self.api.user_timeline(screen_name=target_handle, count=lookback_limit)
+        for status in statuses:
+
+            status_id = status.id
+            # find possible replies we've made.
+            our_statuses = self.api.user_timeline(since_id=status_id)
+            in_reply_to_ids = list(map(lambda x: x.in_reply_to_status_id, our_statuses))
+            if status_id not in in_reply_to_ids:
+                message = callback(message_id=status_id, message=status.text, extra_keys={})
+
+                full_message = f"@{target_handle} {message}"
+                self.log.info(f"Replying {message} to status {status_id} from {target_handle}.")
+                new_status = self.api.update_status(full_message, in_reply_to_status_id=status_id)
+
+                records.append(TootRecord(record_data={
+                    "tweet_id": new_status.id,
+                    "text": full_message,
+                }))
+            else:
+                self.log.info(f"Not replying to status {status_id} from {target_handle} "
+                              f"- we already replied.")
+
+        return records
 
     # TODO find a replacement/find out how mastodon DMs work.
     # def send_dm_sos(self, message):
@@ -111,11 +195,19 @@ class MastodonSkeleton(OutputSkeleton):
 
 
 class TootRecord(OutputRecord):
-    def __init__(self,
-                 record_data: Dict[str, Any]={},
-                 error: mastodon.MastodonError = None,
-                 ) -> None:
-        """Create toot record object."""
+    def __init__(
+            self,
+            *,
+            record_data: Dict[str, Any]={},
+            error: mastodon.MastodonError = None,
+    ) -> None:
+        """
+        Create toot record object.
+
+        :param record_data: data to use to generate a TootRecord.
+        :param error: error encountered while posting,
+            to generate a record with.
+        """
         super().__init__()
         self._type = self.__class__.__name__
         self.toot_id = record_data.get("toot_id", "")

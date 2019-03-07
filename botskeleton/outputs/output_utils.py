@@ -5,7 +5,13 @@ from typing import Any, Callable, Dict, List
 
 class OutputSkeleton:
     """Common stuff for output skeletons."""
-    def __init__(self, secrets_dir: str, log: Logger, bot_name: str) -> None:
+    def __init__(
+            self,
+            *,
+            secrets_dir: str,
+            log: Logger,
+            bot_name: str,
+    ) -> None:
         self.log = log
         self.secrets_dir = secrets_dir
 
@@ -13,9 +19,12 @@ class OutputSkeleton:
         self.handled_errors: Dict[int, Any] = {}
 
         # Output skeletons must implement these.
-        self.cred_init: Callable[[str, Logger, str], None]
-        self.send: Callable[[str], OutputRecord]
-        self.send_with_media: Callable[[str, List[str], List[str]], OutputRecord]
+        # mypy doesn't let us express a function taking only keyword arguments,
+        # as best I can tell.
+        self.cred_init: Callable[..., None]
+        self.send: Callable[..., List[OutputRecord]]
+        self.send_with_media: Callable[..., List[OutputRecord]]
+        self.perform_batch_reply: Callable[..., List[OutputRecord]]
 
     def linfo(self, message: str) -> None:
         """Wrapped debug log with prefix key."""

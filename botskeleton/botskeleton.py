@@ -31,11 +31,11 @@ class IterationRecord:
         return str(self.__dict__)
 
     def __repr__(self) -> str:
-        """repr object"""
+        """repr object."""
         return str(self)
 
     def __eq__(self, other:Any) -> bool:
-        """Equality"""
+        """Equality."""
         if isinstance(other, IterationRecord):
             for key, value in self.__dict__.items():
                 if value != other.__dict__[key]:
@@ -63,6 +63,9 @@ class BotSkeleton():
         if secrets_dir is None:
             msg = "Please provide secrets dir!"
             raise BotSkeletonException(desc=msg)
+
+        # some limits on skeleton action.
+        self.lookback_limit=50
 
         self.secrets_dir = secrets_dir
         self.bot_name = bot_name
@@ -96,8 +99,24 @@ class BotSkeleton():
     ###############################################################################################
     ####        PUBLIC API METHODS                                                             ####
     ###############################################################################################
-    def send(self, text: str) -> IterationRecord:
-        """Post, without media, to all outputs."""
+    def send(
+            self,
+            pos_text: str,
+            *,
+            text: str=None,
+    ) -> IterationRecord:
+        """
+        Post text-only to all outputs.
+
+        :param pos_text: positional argument to send as message in post.
+            keyword text argument is preferred over this.
+        :param text: text to send as message in post.
+        :returns: new record of iteration
+        """
+        final_text = text
+        if final_text is None:
+            final_text = pos_text
+
         # TODO there could be some annotation stuff here.
         record = IterationRecord(extra_keys=self.extra_keys)
         for key, output in self.outputs.items():
@@ -115,14 +134,43 @@ class BotSkeleton():
 
         return record
 
-    def send_with_one_media(self, text: str, filename: str, caption: str="") -> IterationRecord:
-        """Post, with one media item, to all outputs."""
+    def send_with_one_media(
+            self,
+            pos_text: str,
+            pos_file: str,
+            *,
+            text: str=None,
+            file: str=None,
+            caption: str="",
+    ) -> IterationRecord:
+        """
+        Post with one media item to all outputs.
+        Provide filenames so outputs can handle their own uploads.
+
+        :param pos_text: positional argument to send as message in post.
+            keyword text argument is preferred over this.
+        :param pos_file: positional argument of file to be uploaded.
+            keyword file argument is preferred over this.
+        :param text: text to send as message in post.
+        :param file: file to be uploaded in post.
+        :param caption: caption to be uploaded alongside file.
+        :returns: new record of iteration
+        """
+        final_text = text
+        if final_text is None:
+            final_text = pos_text
+
+        final_file = file
+        if final_file is None:
+            final_file = pos_file
+
         record = IterationRecord(extra_keys=self.extra_keys)
         for key, output in self.outputs.items():
             if output["active"]:
                 self.log.info(f"Output {key} is active, calling media send on it.")
                 entry: Any = output["obj"]
-                output_result = entry.send_with_media(text, files=[filename],
+                output_result = entry.send_with_media(text=final_text,
+                                                      files=[final_file],
                                                       captions=[caption])
                 record.output_records[key] = output_result
             else:
@@ -133,15 +181,42 @@ class BotSkeleton():
 
         return record
 
-    def send_with_many_media(self, text: str, *filenames: str, captions: List[str]=[]
-                             ) -> IterationRecord:
-        """Post with several media. Provide filenames so outputs can handle their own uploads."""
+    def send_with_many_media(
+            self,
+            pos_text: str,
+            *pos_files: str,
+            text: str=None,
+            files: List[str]=None,
+            captions: List[str]=[],
+    ) -> IterationRecord:
+        """
+        Post with several media.
+        Provide filenames so outputs can handle their own uploads.
+
+        :param pos_text: positional argument to send as message in post.
+            keyword text argument is preferred over this.
+        :param pos_files: positional argument of files to be uploaded.
+            keyword files argument is preferred over this.
+        :param text: text to send as message in post.
+        :param files: files to be uploaded in post.
+        :param captions: captions to be uploaded alongside files.
+        :returns: new record of iteration
+        """
+        final_text = text
+        if final_text is None:
+            final_text = pos_text
+
+        final_files = files
+        if final_files is None:
+            final_files = list(pos_files)
+
         record = IterationRecord(extra_keys=self.extra_keys)
         for key, output in self.outputs.items():
             if output["active"]:
                 self.log.info(f"Output {key} is active, calling media send on it.")
                 entry: Any = output["obj"]
-                output_result = entry.send_with_media(text=text, files=list(filenames),
+                output_result = entry.send_with_media(text=final_text,
+                                                      files=final_files,
                                                       captions=captions)
                 record.output_records[key] = output_result
             else:
@@ -152,23 +227,114 @@ class BotSkeleton():
 
         return record
 
+    def perform_batch_reply(
+            self,
+            *,
+            callback: Callable[..., str]=None,
+            target_handles: Dict[str, str]=None,
+            lookback_limit: int=20,
+            per_service_lookback_limit: Dict[str, int]=None,
+    ) -> IterationRecord:
+        """
+        Performs batch reply on target accounts.
+        Looks up the recent messages of the target user,
+        applies the callback,
+        and replies with
+        what the callback generates.
+
+        :param callback: a callback taking a message id,
+            message contents,
+            and optional extra keys,
+            and returning a message string.
+        :param targets: a dictionary of service names to target handles
+            (currently only one per service).
+        :param lookback_limit: a lookback limit of how many messages to consider (optional).
+        :param per_service_lookback: and a dictionary of service names to per-service
+            lookback limits.
+            takes preference over lookback_limit (optional).
+        :returns: new record of iteration
+        :raises BotSkeletonException: raises BotSkeletonException if batch reply fails or cannot be
+            performed
+        """
+        if callback is None:
+            raise BotSkeletonException("Callback must be provided.""")
+
+        if target_handles is None:
+            raise BotSkeletonException("Targets must be provided.""")
+
+        if lookback_limit > self.lookback_limit:
+            raise BotSkeletonException(
+                f"Lookback_limit cannot exceed {self.lookback_limit}, " +
+                f"but it was {lookback_limit}"
+            )
+
+        # use per-service lookback dict for convenience in a moment.
+        # if necessary, use lookback_limit to fill it out.
+        lookback_dict = per_service_lookback_limit
+        if (lookback_dict is None):
+            lookback_dict = {}
+
+        record = IterationRecord(extra_keys=self.extra_keys)
+        for key, output in self.outputs.items():
+            if key not in lookback_dict:
+                lookback_dict[key] = lookback_limit
+
+            if target_handles.get(key, None) is None:
+                self.log.info(f"No target for output {key}, skipping this output.")
+
+            elif not output.get("active", False):
+                self.log.info(f"Output {key} is inactive. Not calling batch reply.")
+
+            elif output["active"]:
+                self.log.info(f"Output {key} is active, calling batch reply on it.")
+                entry: Any = output["obj"]
+                output_result = entry.perform_batch_reply(callback=callback,
+                                                          target_handle=target_handles[key],
+                                                          lookback_limit=lookback_dict[key],
+                                                          )
+                record.output_records[key] = output_result
+
+        self.history.append(record)
+        self.update_history()
+
+        return record
+
     def nap(self) -> None:
-        """Go to sleep for a bit."""
+        """
+        Go to sleep for the duration of self.delay.
+
+        :returns: None
+        """
         self.log.info(f"Sleeping for {self.delay} seconds.")
         for _ in progress.bar(range(self.delay)):
             time.sleep(1)
 
     def store_extra_info(self, key: str, value: Any) -> None:
-        """Store some extra value in the tweet storage."""
+        """
+        Store some extra value in the messaging storage.
+
+        :param key: key of dictionary entry to add.
+        :param value: value of dictionary entry to add.
+        :returns: None
+        """
         self.extra_keys[key] = value
 
     def store_extra_keys(self, d: Dict[str, Any]) -> None:
-        """Store several extra values in the tweet storage."""
+        """
+        Store several extra values in the messaging storage.
+
+        :param d: dictionary entry to merge with current self.extra_keys.
+        :returns: None
+        """
         new_dict = dict(self.extra_keys, **d)
         self.extra_keys = new_dict.copy()
 
     def update_history(self) -> None:
-        """Update tweet history."""
+        """
+        Update messaging history on disk.
+
+        :returns: None
+        """
         self.log.debug(f"Saving history. History is: \n{self.history}")
 
         jsons = []
@@ -188,7 +354,11 @@ class BotSkeleton():
             f.write("\n") # add trailing new line dump skips.
 
     def load_history(self) -> List["IterationRecord"]:
-        """Load tweet history."""
+        """
+        Load messaging history from disk to self.
+
+        :returns: List of iteration records comprising history.
+        """
         if path.isfile(self.history_filename):
             with open(self.history_filename, "r") as f:
                 try:
@@ -203,12 +373,11 @@ class BotSkeleton():
                 history: List[IterationRecord] = []
                 for hdict_pre in dicts:
 
-                    # repair any corrupted entries
-                    hdict = _repair(hdict_pre)
-
-                    if "_type" in hdict and \
-                            hdict["_type"] == IterationRecord.__name__:
-                        history.append(IterationRecord.from_dict(hdict))
+                    if "_type" in hdict_pre and hdict_pre["_type"] == IterationRecord.__name__:
+                        # repair any corrupted entries
+                        hdict = _repair(hdict_pre)
+                        record = IterationRecord.from_dict(hdict)
+                        history.append(record)
 
                     # Be sure to handle legacy tweetrecord-only histories.
                     # Assume anything without our new _type (which should have been there from the
@@ -217,10 +386,10 @@ class BotSkeleton():
                         item = IterationRecord()
 
                         # Lift extra keys up to upper record (if they exist).
-                        extra_keys = hdict.pop("extra_keys", {})
+                        extra_keys = hdict_pre.pop("extra_keys", {})
                         item.extra_keys = extra_keys
 
-                        hdict_obj = TweetRecord.from_dict(hdict)
+                        hdict_obj = TweetRecord.from_dict(hdict_pre)
 
                         # Lift timestamp up to upper record.
                         item.timestamp = hdict_obj.timestamp
@@ -258,7 +427,7 @@ class BotSkeleton():
                 output_skeleton["active"] = True
 
                 obj: Any = output_skeleton["obj"]
-                obj.cred_init(credentials_dir, self.log, bot_name=self.bot_name)
+                obj.cred_init(secrets_dir=credentials_dir, log=self.log, bot_name=self.bot_name)
 
                 output_skeleton["obj"] = obj
 
@@ -268,7 +437,7 @@ class BotSkeleton():
         """Parse output records into dicts ready for JSON."""
         output_records = {}
         for key, sub_item in item.output_records.items():
-            if isinstance(sub_item, dict):
+            if isinstance(sub_item, dict) or isinstance(sub_item, list):
                 output_records[key] = sub_item
             else:
                 output_records[key] = sub_item.__dict__
@@ -298,13 +467,13 @@ def random_line(file_path: str) -> str:
 ####      "PRIVATE" MODULE METHODS, NOT INTENDED FOR PUBLIC USE                                ####
 ###################################################################################################
 def _repair(record: Dict[str, Any]) -> Dict[str, Any]:
-    """Repair a corrupted IterationRecord."""
+    """Repair a corrupted IterationRecord with a specific known issue."""
     output_records = record.get("output_records")
-    if record.get("_type") == "IterationRecord" and output_records is not None:
+    if record.get("_type", None) == "IterationRecord" and output_records is not None:
         birdsite_record = output_records.get("birdsite")
 
         # check for the bug
-        if birdsite_record.get("_type") == "IterationRecord":
+        if isinstance(birdsite_record, dict) and birdsite_record.get("_type") == "IterationRecord":
 
             # get to the bottom of the corrupted record
             while birdsite_record.get("_type") == "IterationRecord":
@@ -314,7 +483,7 @@ def _repair(record: Dict[str, Any]) -> Dict[str, Any]:
             # add type
             birdsite_record["_type"] = TweetRecord.__name__
 
-            # Lift extra keys, just in case.
+            # lift extra keys, just in case
             if "extra_keys" in birdsite_record:
                 record_extra_values = record.get("extra_keys", {})
                 for key, value in birdsite_record["extra_keys"].items():
