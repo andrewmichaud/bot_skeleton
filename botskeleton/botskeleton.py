@@ -138,10 +138,11 @@ class BotSkeleton():
             self,
             pos_text: str,
             pos_file: str,
+            pos_caption: str,
             *,
             text: str=None,
             file: str=None,
-            caption: str="",
+            caption: str=None,
     ) -> IterationRecord:
         """
         Post with one media item to all outputs.
@@ -151,11 +152,14 @@ class BotSkeleton():
             keyword text argument is preferred over this.
         :param pos_file: positional argument of file to be uploaded.
             keyword file argument is preferred over this.
+        :param pos_caption: positional argument of caption to pair with file.
+            keyword caption argument is preferred over this.
         :param text: text to send as message in post.
         :param file: file to be uploaded in post.
         :param caption: caption to be uploaded alongside file.
         :returns: new record of iteration
         """
+        print(f"text {pos_text} file {pos_file} caption {pos_caption}")
         final_text = text
         if final_text is None:
             final_text = pos_text
@@ -164,6 +168,10 @@ class BotSkeleton():
         if final_file is None:
             final_file = pos_file
 
+        final_caption = caption
+        if final_caption is None:
+            final_caption = pos_caption
+
         record = IterationRecord(extra_keys=self.extra_keys)
         for key, output in self.outputs.items():
             if output["active"]:
@@ -171,7 +179,7 @@ class BotSkeleton():
                 entry: Any = output["obj"]
                 output_result = entry.send_with_media(text=final_text,
                                                       files=[final_file],
-                                                      captions=[caption])
+                                                      captions=[final_caption])
                 record.output_records[key] = output_result
             else:
                 self.log.info(f"Output {key} is inactive. Not sending with media.")
