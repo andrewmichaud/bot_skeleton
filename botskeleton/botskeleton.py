@@ -484,9 +484,20 @@ def _repair(record: Dict[str, Any]) -> Dict[str, Any]:
         if isinstance(birdsite_record, dict) and birdsite_record.get("_type") == "IterationRecord":
 
             # get to the bottom of the corrupted record
+            failed = False
             while birdsite_record.get("_type") == "IterationRecord":
                 sub_record = birdsite_record.get("output_records")
+                if sub_record is None:
+                    failed = True
+                    break
+
                 birdsite_record = sub_record.get("birdsite")
+                if birdsite_record is None:
+                    failed = True
+                    break
+
+            if failed:
+                return record
 
             # add type
             birdsite_record["_type"] = TweetRecord.__name__
