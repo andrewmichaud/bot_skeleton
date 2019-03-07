@@ -159,7 +159,6 @@ class BotSkeleton():
         :param caption: caption to be uploaded alongside file.
         :returns: new record of iteration
         """
-        print(f"text {pos_text} file {pos_file} caption {pos_caption}")
         final_text = text
         if final_text is None:
             final_text = pos_text
