@@ -1,4 +1,10 @@
 botskeleton/__pycache__
+botskeleton/outputs/__pycache__
+botskeleton/test/__pycache__
 dist
 build
 botskeleton.egg-info/
+.eggs
+.mypy_cache
+.pytest_cache
+
