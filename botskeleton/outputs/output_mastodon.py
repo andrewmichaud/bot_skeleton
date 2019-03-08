@@ -167,7 +167,7 @@ class MastodonSkeleton(OutputSkeleton):
                 break
 
         if their_id is None:
-            return [self.handle_error(f"Could not find target handle {target_handle}!")]
+            return [self.handle_error(f"Could not find target handle {target_handle}!", None)]
 
         statuses = self.api.account_statuses(their_id, limit=lookback_limit)
         for status in statuses:
