@@ -1,3 +1,17 @@
+3.2.4 (2019-03-08):
+dm manual fix
+* BUGFIX
+    * birdsite dm was entirely broken without me noticing,
+    because birdsite changed the API and tweepy hasn't yet adapted.
+    fixed with a manual block similar to how caption upload is done.
+    * add another check when procesing error to record,
+    in case error can't be json dumped.
+
+* DEV
+    * make _handle_caption_upload and _upload_caption "private" with the leading underscore.
+    * force keyword-only args in handle_error.
+    * have batch_reply handle target handle either with or without a leading "@".
+
 3.2.3 (2019-03-08):
 more error handling
 * BUGFIX

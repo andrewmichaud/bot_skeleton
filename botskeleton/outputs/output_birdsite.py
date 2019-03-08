@@ -87,9 +87,9 @@ class BirdsiteSkeleton(OutputSkeleton):
 
         except tweepy.TweepError as e:
             return [self.handle_error(
-                (f"Bot {self.bot_name} encountered an error when "
+                message=(f"Bot {self.bot_name} encountered an error when "
                  f"sending post {text} without media:\n{e}\n"),
-                e)]
+                error=e)]
 
     def send_with_media(
             self,
@@ -118,11 +118,11 @@ class BirdsiteSkeleton(OutputSkeleton):
             media_ids = [self.api.media_upload(file).media_id_string for file in files]
         except tweepy.TweepError as e:
             return [self.handle_error(
-                f"Bot {self.bot_name} encountered an error when uploading {files}:\n{e}\n",
-                e)]
+                message=f"Bot {self.bot_name} encountered an error when uploading {files}:\n{e}\n",
+                error=e)]
 
         # apply captions, if present
-        self.handle_caption_upload(media_ids, captions)
+        self._handle_caption_upload(media_ids, captions)
 
         # send status
         try:
@@ -138,9 +138,9 @@ class BirdsiteSkeleton(OutputSkeleton):
 
         except tweepy.TweepError as e:
             return [self.handle_error(
-                (f"Bot {self.bot_name} encountered an error when "
+                message=(f"Bot {self.bot_name} encountered an error when "
                  f"sending post {text} with media ids {media_ids}:\n{e}\n"),
-                e)]
+                error=e)]
 
     def perform_batch_reply(
             self,
@@ -168,13 +168,23 @@ class BirdsiteSkeleton(OutputSkeleton):
         """
         self.log.info(f"Attempting to batch reply to birdsite user {target_handle}")
 
+        if "@" in target_handle:
+            base_target_handle = target_handle[1:]
+        else:
+            base_target_handle = target_handle
+
         records: List[OutputRecord] = []
-        statuses = self.api.user_timeline(screen_name=target_handle, count=lookback_limit)
-        for status in statuses:
+        statuses = self.api.user_timeline(screen_name=base_target_handle, count=lookback_limit)
+        self.log.debug(f"Retrieved {len(statuses)} statuses.")
+        for i, status in enumerate(statuses):
+            self.log.debug(f"Processing status {i} of {len(statuses)}")
             status_id = status.id
 
             # find possible replies we've made.
-            our_statuses = self.api.user_timeline(since_id=status_id)
+            # the 10 * lookback_limit is a guess,
+            # might not be enough and I'm not sure we can guarantee it is.
+            our_statuses = self.api.user_timeline(since_id=status_id,
+                                                  count=lookback_limit * 10)
             in_reply_to_ids = list(map(lambda x: x.in_reply_to_status_id, our_statuses))
 
             if status_id not in in_reply_to_ids:
@@ -184,7 +194,7 @@ class BirdsiteSkeleton(OutputSkeleton):
                                                   tweet_mode="extended")._json["full_text"]
                 message = callback(message_id=status_id, message=status_text, extra_keys={})
 
-                full_message = f"@{target_handle} {message}"
+                full_message = f"@{base_target_handle} {message}"
                 self.log.info(f"Trying to reply with {message} to status {status_id} "
                               f"from {target_handle}.")
                 try:
@@ -193,16 +203,16 @@ class BirdsiteSkeleton(OutputSkeleton):
 
                     records.append(TweetRecord(record_data={
                         "tweet_id": new_status.id,
-                        "in_reply_to": target_handle,
+                        "in_reply_to": f"@{base_target_handle}",
                         "in_reply_to_id": status_id,
                         "text": full_message,
                     }))
 
                 except tweepy.TweepError as e:
                     records.append(self.handle_error(
-                        (f"Bot {self.bot_name} encountered an error when "
+                        message=(f"Bot {self.bot_name} encountered an error when "
                          f"trying to reply to {status_id} with {message}:\n{e}\n"),
-                        e))
+                        error=e))
             else:
                 self.log.info(f"Not replying to status {status_id} from {target_handle} "
                               f"- we already replied.")
@@ -219,7 +229,26 @@ class BirdsiteSkeleton(OutputSkeleton):
         """
         if self.owner_handle:
             try:
-                self.api.send_direct_message(user=self.owner_handle, text=message)
+                # twitter changed the DM API and tweepy (as of 2019-03-08)
+                # has not adapted.
+                # fixing with
+                # https://github.com/tweepy/tweepy/issues/1081#issuecomment-423486837
+                owner_id = self.api.get_user(screen_name=self.owner_handle).id
+                event = {
+                    "event": {
+                        "type": "message_create",
+                        "message_create": {
+                            "target": {
+                                "recipient_id": f"{owner_id}",
+                            },
+                            "message_data": {
+                                "text": message
+                            }
+                        }
+                    }
+                }
+
+                self._send_direct_message_new(event)
 
             except tweepy.TweepError as de:
                 self.lerror(f"Error trying to send DM about error!: {de}")
@@ -227,7 +256,12 @@ class BirdsiteSkeleton(OutputSkeleton):
         else:
             self.lerror("Can't send DM SOS, no owner handle.")
 
-    def handle_error(self, message: str, e: tweepy.TweepError) -> OutputRecord:
+    def handle_error(
+            self,
+            *,
+            message: str,
+            error: tweepy.TweepError,
+    ) -> OutputRecord:
         """
         Handle error while trying to do something.
 
@@ -235,11 +269,11 @@ class BirdsiteSkeleton(OutputSkeleton):
         :param e: tweepy error object.
         :returns: OutputRecord containing an error.
         """
-        self.lerror(f"Got an error! {e}")
+        self.lerror(f"Got an error! {error}")
 
         # Handle errors if we know how.
         try:
-            code = e[0]["code"]
+            code = error[0]["code"]
             if code in self.handled_errors:
                 self.handled_errors[code]
             else:
@@ -248,7 +282,7 @@ class BirdsiteSkeleton(OutputSkeleton):
         except Exception:
             self.send_dm_sos(message)
 
-        return TweetRecord(error=e)
+        return TweetRecord(error=error)
 
     def default_duplicate_handler(self) -> None:
         """Default handler for duplicate status error."""
@@ -258,7 +292,7 @@ class BirdsiteSkeleton(OutputSkeleton):
     def set_duplicate_handler(self, duplicate_handler: Callable[..., None]) -> None:
         self.handled_errors[187] = duplicate_handler
 
-    def handle_caption_upload(self, media_ids: List[str], captions: Optional[List[str]]) -> None:
+    def _handle_caption_upload(self, media_ids: List[str], captions: Optional[List[str]]) -> None:
         """
         Handle uploading all captions.
 
@@ -274,10 +308,10 @@ class BirdsiteSkeleton(OutputSkeleton):
 
         for i, media_id in enumerate(media_ids):
             caption = captions[i]
-            self.upload_caption(media_id=media_id, caption=caption)
+            self._upload_caption(media_id=media_id, caption=caption)
 
     # taken from https://github.com/tweepy/tweepy/issues/716#issuecomment-398844271
-    def upload_caption(self, media_id: str, caption: str) -> Any:
+    def _upload_caption(self, media_id: str, caption: str) -> Any:
         post_data = {
             "media_id": media_id,
             "alt_text": {
@@ -287,9 +321,42 @@ class BirdsiteSkeleton(OutputSkeleton):
 
         metadata_path = "/media/metadata/create.json"
 
-        return tweepy.binder.bind_api(api=self.api, path=metadata_path, method="POST",
-                                      allowed_param=[], require_auth=True, upload_api=True
-                                      )(post_data=json.dumps(post_data))
+        return tweepy.binder.bind_api(
+            api=self.api,
+            path=metadata_path,
+            method="POST",
+            allowed_param=[],
+            require_auth=True,
+            upload_api=True,
+        )(post_data=json.dumps(post_data))
+
+    # taken from
+    # https://github.com/do-n-khanh/tweepy/commit/79772c976c64830149095f087c16c181912466ba#diff-ea5dd38a4efd9ff36c96e04ab0597cfb
+    def _send_direct_message_new(self, messageobject: Dict[str, Dict]) -> Any:
+        """
+        :reference: https://developer.twitter.com/en/docs/direct-messages/sending-and-receiving/api-reference/new-event.html
+        """
+        headers, post_data = _buildmessageobject(messageobject)
+        newdm_path = "/direct_messages/events/new.json"
+
+        return tweepy.binder.bind_api(
+            api=self.api,
+            path=newdm_path,
+            method="POST",
+            require_auth=True,
+        )(post_data=post_data, headers=headers)
+
+# taken from
+# https://github.com/do-n-khanh/tweepy/commit/79772c976c64830149095f087c16c181912466ba#diff-ea5dd38a4efd9ff36c96e04ab0597cfb
+def _buildmessageobject(messageobject: Dict[str, Dict]) -> Tuple[Dict[str, str], str]:
+    body = json.dumps(messageobject)
+    # build headers
+    headers = {
+        "Content-Type": "application/json",
+        "Content-Length": str(len(body))
+    }
+
+    return headers, body
 
 class TweetRecord(OutputRecord):
     def __init__(
@@ -319,7 +386,12 @@ class TweetRecord(OutputRecord):
 
         if error is not None:
             # So Python doesn't get upset when we try to json-dump the record later.
-            self.error = json.dumps(error.__dict__)
+            try:
+                self.error = json.dumps(error.__dict__)
+            except TypeError:
+                # fuck you
+                self.error = str(error)
+
             try:
                 if isinstance(error.message, str):
                     self.error_message = error.message
