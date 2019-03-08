@@ -171,13 +171,13 @@ class BirdsiteSkeleton(OutputSkeleton):
         records: List[OutputRecord] = []
         statuses = self.api.user_timeline(screen_name=target_handle, count=lookback_limit)
         for status in statuses:
-
             status_id = status.id
+
             # find possible replies we've made.
             our_statuses = self.api.user_timeline(since_id=status_id)
             in_reply_to_ids = list(map(lambda x: x.in_reply_to_status_id, our_statuses))
-            if status_id not in in_reply_to_ids:
 
+            if status_id not in in_reply_to_ids:
                 # the twitter API and tweepy will attempt to give us the truncated text of the
                 # message if we don't do this roundabout thing.
                 status_text = self.api.get_status(status_id,
@@ -185,16 +185,24 @@ class BirdsiteSkeleton(OutputSkeleton):
                 message = callback(message_id=status_id, message=status_text, extra_keys={})
 
                 full_message = f"@{target_handle} {message}"
-                self.log.info(f"Replying {message} to status {status_id} from {target_handle}.")
-                new_status = self.api.update_status(status=full_message,
-                                                    in_reply_to_status_id=status_id)
+                self.log.info(f"Trying to reply with {message} to status {status_id} "
+                              f"from {target_handle}.")
+                try:
+                    new_status = self.api.update_status(status=full_message,
+                                                        in_reply_to_status_id=status_id)
 
-                records.append(TweetRecord(record_data={
-                    "tweet_id": new_status.id,
-                    "in_reply_to": target_handle,
-                    "in_reply_to_id": status_id,
-                    "text": full_message,
-                }))
+                    records.append(TweetRecord(record_data={
+                        "tweet_id": new_status.id,
+                        "in_reply_to": target_handle,
+                        "in_reply_to_id": status_id,
+                        "text": full_message,
+                    }))
+
+                except tweepy.TweepError as e:
+                    records.append(self.handle_error(
+                        (f"Bot {self.bot_name} encountered an error when "
+                         f"trying to reply to {status_id} with {message}:\n{e}\n"),
+                        e))
             else:
                 self.log.info(f"Not replying to status {status_id} from {target_handle} "
                               f"- we already replied.")

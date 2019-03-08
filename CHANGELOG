@@ -1,3 +1,8 @@
+3.2.3 (2019-03-08):
+more error handling
+* BUGFIX
+    * batch reply won't crash on a duplicate message on the birdsite output.
+
 3.2.2 (2019-03-08):
 correct batch reply
 * BUGFIX
