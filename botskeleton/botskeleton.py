@@ -123,7 +123,7 @@ class BotSkeleton():
             if output["active"]:
                 self.log.info(f"Output {key} is active, calling send on it.")
                 entry: Any = output["obj"]
-                output_result = entry.send(text=text)
+                output_result = entry.send(text=final_text)
                 record.output_records[key] = output_result
 
             else:

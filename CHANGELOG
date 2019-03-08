@@ -1,3 +1,9 @@
+3.2.1 (2019-03-07):
+small fix
+* BUGFIX
+    * botskeleton send passed the wrong argument in,
+    causing all calls to fail if only position argument text was provided.
+
 3.2.0 (2019-03-07):
 batch reply functionality
 * FEATURES
