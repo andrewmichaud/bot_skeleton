@@ -177,11 +177,17 @@ class BirdsiteSkeleton(OutputSkeleton):
             our_statuses = self.api.user_timeline(since_id=status_id)
             in_reply_to_ids = list(map(lambda x: x.in_reply_to_status_id, our_statuses))
             if status_id not in in_reply_to_ids:
-                message = callback(message_id=status_id, message=status.text, extra_keys={})
+
+                # the twitter API and tweepy will attempt to give us the truncated text of the
+                # message if we don't do this roundabout thing.
+                status_text = self.api.get_status(status_id,
+                                                  tweet_mode="extended")._json["full_text"]
+                message = callback(message_id=status_id, message=status_text, extra_keys={})
 
                 full_message = f"@{target_handle} {message}"
                 self.log.info(f"Replying {message} to status {status_id} from {target_handle}.")
-                new_status = self.api.update_status(full_message, in_reply_to_status_id=status_id)
+                new_status = self.api.update_status(status=full_message,
+                                                    in_reply_to_status_id=status_id)
 
                 records.append(TweetRecord(record_data={
                     "tweet_id": new_status.id,

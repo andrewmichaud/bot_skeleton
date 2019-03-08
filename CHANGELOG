@@ -1,3 +1,10 @@
+3.2.2 (2019-03-08):
+correct batch reply
+* BUGFIX
+    * Batch reply for both birdsite and mastodon was broken.
+    * Fix birdsite reply to get the full message text correctly.
+    * Fix mastodon reply to get the correct target account or fail out.
+
 3.2.1 (2019-03-07):
 small fix
 * BUGFIX

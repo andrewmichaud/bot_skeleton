@@ -149,10 +149,26 @@ class MastodonSkeleton(OutputSkeleton):
         """
         self.log.info(f"Attempting to batch reply to mastodon user {target_handle}")
 
+        # target handle should be able to be provided either as @user or @user@domain
+        # note that this produces an empty first chunk
+        handle_chunks = target_handle.split("@")
+        target_base_handle = handle_chunks[1]
+
         records: List[OutputRecord] = []
-        # TODO bad
         our_id = self.api.account_verify_credentials()["id"]
-        their_id = self.api.account_search(target_handle, limit=1)[0]
+
+        # be careful here - we're using a search to do this,
+        # and if we're not careful we'll pull up people just mentioning the target.
+        possible_accounts = self.api.account_search(target_handle, following=True)
+        their_id = None
+        for account in possible_accounts:
+            if account["username"] == target_base_handle:
+                their_id = account["id"]
+                break
+
+        if their_id is None:
+            return [self.handle_error(f"Could not find target handle {target_handle}!")]
+
         statuses = self.api.account_statuses(their_id, limit=lookback_limit)
         for status in statuses:
 
