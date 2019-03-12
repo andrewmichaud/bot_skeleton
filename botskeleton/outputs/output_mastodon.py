@@ -1,4 +1,5 @@
 """Skeleton code for sending to mastodon."""
+import html
 import json
 import re
 from logging import Logger
@@ -173,12 +174,16 @@ class MastodonSkeleton(OutputSkeleton):
         for status in statuses:
 
             status_id = status.id
-            text = re.sub(self.html_re, "", status.content)
+
             # find possible replies we've made.
             our_statuses = self.api.account_statuses(our_id, since_id=status_id)
             in_reply_to_ids = list(map(lambda x: x.in_reply_to_id, our_statuses))
             if status_id not in in_reply_to_ids:
-                message = callback(message_id=status_id, message=text, extra_keys={})
+
+                encoded_status_text = re.sub(self.html_re, "", status.content)
+                status_text = html.unescape(encoded_status_text)
+
+                message = callback(message_id=status_id, message=status_text, extra_keys={})
                 self.log.info(f"Replying {message} to status {status_id} from {target_handle}.")
                 try:
                     new_status = self.api.status_post(status=message, in_reply_to_id=status_id)

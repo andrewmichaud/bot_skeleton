@@ -1,4 +1,5 @@
 """Skeleton code for sending to the bad bird site."""
+import html
 import json
 from logging import Logger
 from os import path
@@ -190,8 +191,10 @@ class BirdsiteSkeleton(OutputSkeleton):
             if status_id not in in_reply_to_ids:
                 # the twitter API and tweepy will attempt to give us the truncated text of the
                 # message if we don't do this roundabout thing.
-                status_text = self.api.get_status(status_id,
+                encoded_status_text = self.api.get_status(status_id,
                                                   tweet_mode="extended")._json["full_text"]
+
+                status_text = html.unescape(encoded_status_text)
                 message = callback(message_id=status_id, message=status_text, extra_keys={})
 
                 full_message = f"@{base_target_handle} {message}"

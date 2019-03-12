@@ -1,3 +1,9 @@
+3.2.5 (2019-03-11):
+html unescaping
+* BUGFIX
+    * both birdsite and mastodon batch reply would give HTML-encoded strings to the caller.
+    this runs html.unescape on the strings to turn things like &gt; back into >.
+
 3.2.4 (2019-03-08):
 dm manual fix
 * BUGFIX
