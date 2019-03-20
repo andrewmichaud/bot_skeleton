@@ -239,7 +239,7 @@ They should be relatively accurate, but won't be exact.
 ### 1.0.1 (2017-10-24):
 #### initial bugfixes
 * BUGFIXES:
-    * Added __init__.py in botskeleton so bots can import it correctly.
+    * Added \_\_init\_\_.py in botskeleton so bots can import it correctly.
     * Fixed class name for proper new-style class.
     * Fixed name in setup.py and specified python_requires correctly.
 
