@@ -74,7 +74,7 @@ class MastodonSkeleton(OutputSkeleton):
             *,
             text: str,
             files: List[str],
-            captions: List[str] = None,
+            captions: List[str]=[],
     ) -> List[OutputRecord]:
         """
         Upload media to mastodon,
@@ -90,16 +90,16 @@ class MastodonSkeleton(OutputSkeleton):
         """
         try:
             self.ldebug(f"Uploading files {files}.")
-            if captions is not None:
-                if len(files) > len(captions):
-                    captions.extend([""] * (len(files) - len(captions)))
+            if captions is None:
+                captions = []
 
-                media_dicts = []
-                for i, file in enumerate(files):
-                    caption = captions[i]
-                    media_dicts.append(self.api.media_post(file, description=caption))
-            else:
-                media_dicts = [self.api.media_post(file) for file in files]
+            if len(files) > len(captions):
+                captions.extend([self.default_caption_message] * (len(files) - len(captions)))
+
+            media_dicts = []
+            for i, file in enumerate(files):
+                caption = captions[i]
+                media_dicts.append(self.api.media_post(file, description=caption))
 
             self.ldebug(f"Media ids {media_dicts}")
 

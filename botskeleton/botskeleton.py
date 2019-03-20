@@ -101,21 +101,26 @@ class BotSkeleton():
     ###############################################################################################
     def send(
             self,
-            pos_text: str,
-            *,
+            *args: str,
             text: str=None,
     ) -> IterationRecord:
         """
         Post text-only to all outputs.
 
-        :param pos_text: positional argument to send as message in post.
+        :param args: positional arguments.
+            expected: text to send as message in post.
             keyword text argument is preferred over this.
         :param text: text to send as message in post.
         :returns: new record of iteration
         """
-        final_text = text
-        if final_text is None:
-            final_text = pos_text
+        if text is not None:
+            final_text = text
+        else:
+            if len(args) == 0:
+                raise BotSkeletonException(("Please provide text either as a positional arg or "
+                                            "as a keyword arg (text=TEXT)"))
+            else:
+                final_text = args[0]
 
         # TODO there could be some annotation stuff here.
         record = IterationRecord(extra_keys=self.extra_keys)
@@ -136,24 +141,21 @@ class BotSkeleton():
 
     def send_with_one_media(
             self,
-            pos_text: str,
-            pos_file: str,
-            pos_caption: str,
-            *,
+            *args: str,
             text: str=None,
             file: str=None,
             caption: str=None,
     ) -> IterationRecord:
         """
         Post with one media item to all outputs.
-        Provide filenames so outputs can handle their own uploads.
+        Provide filename so outputs can handle their own uploads.
 
-        :param pos_text: positional argument to send as message in post.
-            keyword text argument is preferred over this.
-        :param pos_file: positional argument of file to be uploaded.
-            keyword file argument is preferred over this.
-        :param pos_caption: positional argument of caption to pair with file.
-            keyword caption argument is preferred over this.
+        :param args: positional arguments.
+            expected:
+                text to send as message in post.
+                file to be uploaded.
+                caption to be paired with file.
+            keyword arguments preferred over positional ones.
         :param text: text to send as message in post.
         :param file: file to be uploaded in post.
         :param caption: caption to be uploaded alongside file.
@@ -161,15 +163,32 @@ class BotSkeleton():
         """
         final_text = text
         if final_text is None:
-            final_text = pos_text
+            if len(args) < 1:
+                raise TypeError(("Please provide either positional argument "
+                                 "TEXT, or keyword argument text=TEXT"))
+            else:
+                final_text = args[0]
 
         final_file = file
         if final_file is None:
-            final_file = pos_file
+            if len(args) < 2:
+                raise TypeError(("Please provide either positional argument "
+                                            "FILE, or keyword argument file=FILE"))
+            else:
+                final_file = args[1]
 
+        # this arg is ACTUALLY optional,
+        # so the pattern is changed.
         final_caption = caption
         if final_caption is None:
-            final_caption = pos_caption
+            if len(args) >= 3:
+                final_caption = args[2]
+
+        # TODO more error checking like this.
+        if final_caption is None or final_caption == "":
+            captions:List[str] = []
+        else:
+            captions = [final_caption]
 
         record = IterationRecord(extra_keys=self.extra_keys)
         for key, output in self.outputs.items():
@@ -178,7 +197,7 @@ class BotSkeleton():
                 entry: Any = output["obj"]
                 output_result = entry.send_with_media(text=final_text,
                                                       files=[final_file],
-                                                      captions=[final_caption])
+                                                      captions=captions)
                 record.output_records[key] = output_result
             else:
                 self.log.info(f"Output {key} is inactive. Not sending with media.")
@@ -190,8 +209,7 @@ class BotSkeleton():
 
     def send_with_many_media(
             self,
-            pos_text: str,
-            *pos_files: str,
+            *args: str,
             text: str=None,
             files: List[str]=None,
             captions: List[str]=[],
@@ -200,22 +218,38 @@ class BotSkeleton():
         Post with several media.
         Provide filenames so outputs can handle their own uploads.
 
-        :param pos_text: positional argument to send as message in post.
-            keyword text argument is preferred over this.
-        :param pos_files: positional argument of files to be uploaded.
-            keyword files argument is preferred over this.
+        :param args: positional arguments.
+            expected:
+                text to send as message in post.
+                files to be uploaded.
+                captions to be paired with files.
+            keyword arguments preferred over positional ones.
         :param text: text to send as message in post.
         :param files: files to be uploaded in post.
         :param captions: captions to be uploaded alongside files.
         :returns: new record of iteration
         """
-        final_text = text
-        if final_text is None:
-            final_text = pos_text
+        if text is None:
+            if len(args) < 1:
+                raise TypeError(("Please provide either required positional argument "
+                                 "TEXT, or keyword argument text=TEXT"))
+            else:
+                final_text = args[0]
+        else:
+            final_text = text
 
-        final_files = files
-        if final_files is None:
-            final_files = list(pos_files)
+        if files is None:
+            if len(args) < 2:
+                raise TypeError(("Please provide either positional argument "
+                                 "FILES, or keyword argument files=FILES"))
+            else:
+                final_files = list(args[1:])
+        else:
+            final_files = files
+
+        # captions have never been permitted to be provided as positional args
+        # (kind of backed myself into that)
+        # so they just get defaulted and it's fine.
 
         record = IterationRecord(extra_keys=self.extra_keys)
         for key, output in self.outputs.items():

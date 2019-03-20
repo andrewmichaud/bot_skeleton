@@ -97,7 +97,7 @@ class BirdsiteSkeleton(OutputSkeleton):
             *,
             text: str,
             files: List[str],
-            captions: List[str]=None
+            captions: List[str]=[]
     ) -> List[OutputRecord]:
         """
         Upload media to birdsite,
@@ -123,7 +123,7 @@ class BirdsiteSkeleton(OutputSkeleton):
                 error=e)]
 
         # apply captions, if present
-        self._handle_caption_upload(media_ids, captions)
+        self._handle_caption_upload(media_ids=media_ids, captions=captions)
 
         # send status
         try:
@@ -295,7 +295,12 @@ class BirdsiteSkeleton(OutputSkeleton):
     def set_duplicate_handler(self, duplicate_handler: Callable[..., None]) -> None:
         self.handled_errors[187] = duplicate_handler
 
-    def _handle_caption_upload(self, media_ids: List[str], captions: Optional[List[str]]) -> None:
+    def _handle_caption_upload(
+            self,
+            *,
+            media_ids: List[str],
+            captions: Optional[List[str]],
+    ) -> None:
         """
         Handle uploading all captions.
 
@@ -304,17 +309,17 @@ class BirdsiteSkeleton(OutputSkeleton):
         :returns: None.
         """
         if captions is None:
-            return
+            captions = []
 
         if len(media_ids) > len(captions):
-            captions.extend([""] * (len(media_ids) - len(captions)))
+            captions.extend([self.default_caption_message] * (len(media_ids) - len(captions)))
 
         for i, media_id in enumerate(media_ids):
             caption = captions[i]
             self._upload_caption(media_id=media_id, caption=caption)
 
     # taken from https://github.com/tweepy/tweepy/issues/716#issuecomment-398844271
-    def _upload_caption(self, media_id: str, caption: str) -> Any:
+    def _upload_caption(self, *, media_id: str, caption: str) -> Any:
         post_data = {
             "media_id": media_id,
             "alt_text": {

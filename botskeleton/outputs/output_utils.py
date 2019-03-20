@@ -18,6 +18,8 @@ class OutputSkeleton:
         self.bot_name = bot_name
         self.handled_errors: Dict[int, Any] = {}
 
+        self.default_caption_message = "No caption provided for image."
+
         # Output skeletons must implement these.
         # mypy doesn't let us express a function taking only keyword arguments,
         # as best I can tell.
