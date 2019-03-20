@@ -74,20 +74,27 @@ Bot Methods
 These are methods intended to be used to send bot methods.
 
 ------------------------
-:code:`send(self, text)`
+:code:`send(self, text, text=TEXT)`
 ------------------------
 :code:`send` is a plain text send method.
 It will send the text to all configured outputs and save the result.
+`text` can be provided either as a positional argument or a keyword one.
 
 -------------------------------------------------
-:code:`send_with_one_media(self, text, filename)`
+:code:`send_with_one_media(self, text, filename, caption, text=TEXT, filename=FILENAME, caption=CAPTION)`
 -------------------------------------------------
 :code:`send_with_one_media` will call each output and have them upload the file
 (as dictated by the output),
 and send a message with the provided text and that image.
+If a caption is provided,
+it will be uploaded alongside the image as appropriate.
+A default caption will be used if none is provided.
+`text`, `filename`, and `caption` can be provided either as positional arguments,
+in which case they MUST be in this order,
+or as keyword ones.
 
 ----------------------------------------------------
-:code:`send_with_many_media(self, text, *filenames)`
+:code:`send_with_many_media(self, text, *filenames, text=TEXT, filenames=FILENAMES, caption=CAPTION)`
 ----------------------------------------------------
 :code:`send_with_many_media` will call each output and have them upload several files
 (as dictated by the output),
@@ -96,6 +103,14 @@ A current known bug is that the built-in outputs have limits on how many images 
 but there is no limiting in this method.
 If you post more than four images with this method,
 you may see strange results in the outputs.
+If captions are provided,
+they will be uploaded alongside the images as appropriate.
+A default caption will be used for all images ifnone is provided,
+and for images with no caption if insufficient captions are provided.
+`text` and `filenames` can be provided either as positional arguments,
+in which case they MUST be in this order,
+or as keyword ones.
+`caption` must be provided as a keyword argument.
 
 -----------------
 :code:`nap(self)`
