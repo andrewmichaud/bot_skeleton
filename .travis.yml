@@ -7,17 +7,39 @@ os:
 # TODO re-add PyPy when they get >=3.6 support.
 matrix:
   include:
-    - python: "3.6"
+    - os: linux
+      dist: xenial
+      python: "3.6"
       env: "VERSION=3.6"
-    - python: "3.7"
+    - os: linux
+      dist: xenial
+      python: "3.7"
       env: "VERSION=3.7"
-    - python: "nightly"
+    - os: linux
+      dist: xenial
+      python: "nightly"
       env: "VERSION=nightly"
-    - python: "pypy3"
-      env: "VERSION=pypy3"
+    - os: windows
+      python: "3.6"
+      env: "VERSION=3.6"
+    - os: windows
+      python: "3.7"
+      env: "VERSION=3.7"
+    - os: windows
+      python: "nightly"
+      env: "VERSION=nightly"
+    - os: osx
+      python: "3.6"
+      env: "VERSION=3.6"
+    - os: osx
+      python: "3.7"
+      env: "VERSION=3.7"
+    - os: osx
+      python: "nightly"
+      env: "VERSION=nightly"
   allow_failures:
     - env: "VERSION=nightly"
-    - env: "VERSION=pypy3"
+    - os: windows
 
 install:
   - pip install .
