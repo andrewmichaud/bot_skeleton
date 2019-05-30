@@ -73,16 +73,16 @@ Bot Methods
 ===========
 These are methods intended to be used to send bot methods.
 
-------------------------
+-----------------------------------
 :code:`send(self, text, text=TEXT)`
-------------------------
+-----------------------------------
 :code:`send` is a plain text send method.
 It will send the text to all configured outputs and save the result.
 `text` can be provided either as a positional argument or a keyword one.
 
--------------------------------------------------
+---------------------------------------------------------------------------------------------------------
 :code:`send_with_one_media(self, text, filename, caption, text=TEXT, filename=FILENAME, caption=CAPTION)`
--------------------------------------------------
+---------------------------------------------------------------------------------------------------------
 :code:`send_with_one_media` will call each output and have them upload the file
 (as dictated by the output),
 and send a message with the provided text and that image.
@@ -93,13 +93,13 @@ A default caption will be used if none is provided.
 in which case they MUST be in this order,
 or as keyword ones.
 
-----------------------------------------------------
+-----------------------------------------------------------------------------------------------------
 :code:`send_with_many_media(self, text, *filenames, text=TEXT, filenames=FILENAMES, caption=CAPTION)`
-----------------------------------------------------
+-----------------------------------------------------------------------------------------------------
 :code:`send_with_many_media` will call each output and have them upload several files
 (as dictated by the output),
 and send a message with the provided text and those image.
-A current known bug is that the built-in outputs have limits on how many images they can post at once,
+A current known bug is that the built-in outputs limits how many images they can post at once,
 but there is no limiting in this method.
 If you post more than four images with this method,
 you may see strange results in the outputs.
@@ -131,7 +131,8 @@ Feel free to store whatever you like.
 ------------------------------------
 :code:`store_extra_keys(self, dict)`
 ------------------------------------
-:code:`store_extra_keys` will take an entire dictionary and merge it with the :code:`extra_keys` storage.
+:code:`store_extra_keys` will take an entire dictionary,
+and merge it with the :code:`extra_keys` storage.
 As before,
 this will be stored in thie history logs.
 
@@ -205,7 +206,7 @@ and some useful utilities for new outputs.
 
 NOTE Outputs are not considered part of the public API.
 :code:`output/output_utils.py` may change without warning,
-as may the 
+as may the arguments they take.
 
 ----------
 Activation
