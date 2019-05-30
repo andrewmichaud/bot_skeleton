@@ -497,7 +497,7 @@ def rate_limited(max_per_hour: int, *args: Any) -> Callable[..., Any]:
     return util.rate_limited(max_per_hour, *args)
 
 
-def set_up_logging(*args, **kwargs) -> Logger:
+def set_up_logging(*args: Any, **kwargs: Any) -> Logger:
     """Set up proper logging."""
     return util.set_up_logging(kwargs)
 

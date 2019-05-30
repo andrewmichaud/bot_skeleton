@@ -1,3 +1,8 @@
+### 3.3.1 (2019-05-30):
+#### typing fix
+* BUGFIX
+    * fix typing of one method.
+
 ### 3.3.0 (2019-05-30):
 #### better log handling
 * FEATURE
