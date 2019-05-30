@@ -1,3 +1,9 @@
+### 3.3.0 (2019-05-30):
+#### better log handling
+* FEATURE
+    * use botskeleton's new date rotated logs.
+    * pass arguments from re-exposed drewtilities log helper correctly.
+
 ### 3.2.6 (2019-03-20):
 #### correct argument handling
 * BUGFIX

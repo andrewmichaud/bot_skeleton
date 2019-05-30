@@ -74,7 +74,10 @@ class BotSkeleton():
         if log_filename is None:
             log_filename = path.join(self.secrets_dir, "log")
         self.log_filename = log_filename
-        self.log = util.set_up_logging(log_filename=self.log_filename)
+        self.log = util.set_up_logging(
+            log_filename=self.log_filename,
+            use_date_logging=True,
+        )
 
         if history_filename is None:
             history_filename = path.join(self.secrets_dir, f"{self.bot_name}-history.json")
@@ -494,9 +497,9 @@ def rate_limited(max_per_hour: int, *args: Any) -> Callable[..., Any]:
     return util.rate_limited(max_per_hour, *args)
 
 
-def set_up_logging(log_filename: str) -> Logger:
+def set_up_logging(*args, **kwargs) -> Logger:
     """Set up proper logging."""
-    return util.set_up_logging(log_filename=log_filename)
+    return util.set_up_logging(kwargs)
 
 
 def random_line(file_path: str) -> str:

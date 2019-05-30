@@ -6,7 +6,7 @@ HERE = path.abspath(path.dirname(__file__))
 
 INSTALL_REQUIRES = [
     "clint>=0.5.1, <0.6.0",
-    "drewtilities>=1.2.2, <2.0.0",
+    "drewtilities>=1.3.0, <2.0.0",
     "tweepy>=3.7, <4.0",
     "Mastodon.py>=1.3.1, <2.0",
 ]
@@ -39,6 +39,7 @@ setup(author="Andrew Michaud",
           "Operating System :: POSIX :: Linux",
           "Operating System :: POSIX :: BSD :: FreeBSD",
           "Programming Language :: Python :: 3.6",
+          "Programming Language :: Python :: 3.7",
           "Programming Language :: Python :: 3 :: Only",
           "Programming Language :: Python :: Implementation :: CPython",
           "Topic :: Software Development :: Libraries",
