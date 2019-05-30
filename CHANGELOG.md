@@ -1,3 +1,8 @@
+### 3.3.3 (2019-05-30):
+#### nope
+* BUGFIX
+    * drewtilities was splitting logs on second instead of day.
+
 ### 3.3.2 (2019-05-30):
 #### dependency repin
 hopefully last update today
