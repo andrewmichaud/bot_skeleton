@@ -68,4 +68,10 @@ def testdir() -> Generator[str, str, None]:
 
     yield directory
 
+    # make sure we clean up if the tests forgot.
+    files = os.listdir(directory)
+    for file in files:
+        os.remove(os.path.join(directory, file))
+
+
     os.rmdir(directory)
