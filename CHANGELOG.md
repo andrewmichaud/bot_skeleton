@@ -1,3 +1,7 @@
+### 3.3.2 (2019-05-30):
+#### dependency repin
+hopefully last update today
+
 ### 3.3.1 (2019-05-30):
 #### typing fix
 * BUGFIX
