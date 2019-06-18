@@ -43,6 +43,7 @@ setup(author="Andrew Michaud",
           "Programming Language :: Python :: 3 :: Only",
           "Programming Language :: Python :: Implementation :: CPython",
           "Topic :: Software Development :: Libraries",
+          "Typing :: Typed",
       ],
 
       entry_points={},
