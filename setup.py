@@ -62,6 +62,6 @@ setup(author="Andrew Michaud",
       description="A skeleton for content bots.",
       long_description=LONG_DESCRIPTION,
 
-      url="https://github.com/alixnovosi/bot_skeleton",
+      url="https://github.com/alixnovosi/botskeleton",
 
       version=VERSION)
