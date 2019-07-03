@@ -110,7 +110,6 @@ class MastodonSkeleton(OutputSkeleton):
 
         try:
             status = self.api.status_post(status=text, media_ids=media_dicts)
-            self.ldebug(f"Status object from toot: {status}.")
             return [TootRecord(record_data={
                 "toot_id": status["id"],
                 "text": text,

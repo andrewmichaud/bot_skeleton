@@ -1,3 +1,8 @@
+### 3.3.5 (2019-07-02):
+#### even less verbosity
+* BUGFIX
+    * make logs even less verbose by not logging tweet/toot output.
+
 ### 3.3.4 (2019-07-02):
 #### verbosity
 * BUGFIX

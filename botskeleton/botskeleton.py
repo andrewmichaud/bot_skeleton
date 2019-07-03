@@ -379,7 +379,6 @@ class BotSkeleton():
 
         :returns: None
         """
-        self.log.debug(f"Saving history. History is: \n{self.history}")
 
         jsons = []
         for item in self.history:
@@ -441,8 +440,6 @@ class BotSkeleton():
                         item.output_records["birdsite"] = hdict_obj
 
                         history.append(item)
-
-                self.log.debug(f"Loaded history:\n {history}")
 
                 return history
 

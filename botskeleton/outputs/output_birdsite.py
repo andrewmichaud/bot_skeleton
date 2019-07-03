@@ -83,7 +83,6 @@ class BirdsiteSkeleton(OutputSkeleton):
         """
         try:
             status = self.api.update_status(text)
-            self.ldebug(f"Status object from tweet: {status}.")
             return [TweetRecord(record_data={"tweet_id": status._json["id"], "text": text})]
 
         except tweepy.TweepError as e:
@@ -128,7 +127,6 @@ class BirdsiteSkeleton(OutputSkeleton):
         # send status
         try:
             status = self.api.update_status(status=text, media_ids=media_ids)
-            self.ldebug(f"Status object from tweet: {status}.")
             return [TweetRecord(record_data={
                 "tweet_id": status._json["id"],
                 "text": text,
