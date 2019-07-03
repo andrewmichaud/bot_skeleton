@@ -1,3 +1,8 @@
+### 3.3.4 (2019-07-02):
+#### verbosity
+* BUGFIX
+    * make logs somewhat less verbose by not logging full history on load/save.
+
 ### 3.3.3 (2019-05-30):
 #### nope
 * BUGFIX
