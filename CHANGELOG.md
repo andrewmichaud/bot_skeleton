@@ -1,3 +1,6 @@
+### 3.3.6 (2019-07-02):
+#### phony version due to pypi fatfinger
+
 ### 3.3.5 (2019-07-02):
 #### even less verbosity
 * BUGFIX
